@@ -20,18 +20,20 @@ final class CitySearchViewModel: ObservableObject, @preconcurrency CitySearchVie
     
     private let searchService: CitySearchService
     private var cancellables = Set<AnyCancellable>()
+    private weak var coordinator: (any Coordinator)?
     
     // MARK: - Initialization
     
-    init(searchService: CitySearchService) {
+    init(searchService: CitySearchService, coordinator: (any Coordinator)? = nil) {
         self.searchService = searchService
+        self.coordinator = coordinator
         setupInitialData()
     }
     
     /// Convenience initializer that creates a ViewModel with a default search strategy
-    convenience init() {
+    convenience init(coordinator: (any Coordinator)? = nil) {
         let searchService = CitySearchService(strategy: BinarySearchStrategy())
-        self.init(searchService: searchService)
+        self.init(searchService: searchService, coordinator: coordinator)
     }
     
     // MARK: - Public Methods
@@ -63,9 +65,9 @@ final class CitySearchViewModel: ObservableObject, @preconcurrency CitySearchVie
     }
     
     private func handleCitySelection(_ city: City) {
-        // Handle city selection - this could trigger navigation, show details, etc.
         print("Selected City: \(city.displayName)")
-        // TODO: Implement navigation or detail view presentation
+        // Navigate to city detail using coordinator
+        coordinator?.navigate(to: .cityDetail(city))
     }
     
     private func loadSampleCities() -> [City] {
