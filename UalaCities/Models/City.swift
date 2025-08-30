@@ -15,4 +15,11 @@ struct City: Identifiable, Codable, Equatable, Hashable {
     var displayName: String {
         "\(name), \(country)"
     }
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case name
+        case country
+        case coord
+    }
 }

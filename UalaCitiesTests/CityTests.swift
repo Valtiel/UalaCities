@@ -62,7 +62,7 @@ struct CityTests {
         let data = try encoder.encode(city)
         let jsonString = String(data: data, encoding: .utf8)!
         
-        #expect(jsonString.contains("\"id\":1"))
+        #expect(jsonString.contains("\"_id\":1"))
         #expect(jsonString.contains("\"name\":\"Buenos Aires\""))
         #expect(jsonString.contains("\"country\":\"Argentina\""))
         #expect(jsonString.contains("\"coord\""))
@@ -73,7 +73,7 @@ struct CityTests {
     @Test func testCityCodableDecoding() async throws {
         let jsonString = """
         {
-            "id": 1,
+            "_id": 1,
             "name": "Buenos Aires",
             "country": "Argentina",
             "coord": {
@@ -134,7 +134,7 @@ struct CityTests {
     @Test func testCityCodableWithSpecialCharacters() async throws {
         let jsonString = """
         {
-            "id": 4,
+            "_id": 4,
             "name": "São Paulo",
             "country": "Brasil",
             "coord": {
