@@ -29,9 +29,19 @@ final class CityDataService: ObservableObject {
     
     // MARK: - Public Methods
     
+    /// Returns true if cities have been loaded
+    var isDataLoaded: Bool {
+        return !cities.isEmpty
+    }
+    
     /// Loads cities from the data provider
     func loadCities() {
         guard !isLoading else { return }
+        
+        // If cities are already loaded, don't reload
+        if !cities.isEmpty {
+            return
+        }
         
         // Cancel any existing loading task
         loadingTask?.cancel()

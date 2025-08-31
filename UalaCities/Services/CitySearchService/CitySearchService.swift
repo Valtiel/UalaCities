@@ -53,4 +53,9 @@ class CitySearchService {
     var indexedCityCount: Int {
         return strategy.indexedCityCount
     }
+    
+    /// Returns true if cities have been indexed
+    var isIndexed: Bool {
+        return indexedCityCount > 0
+    }
 }

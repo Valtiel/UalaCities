@@ -17,6 +17,7 @@ protocol CitySearchViewState {
     var favoritesCount: Int { get }
     func perform(_ action: CitySearchViewAction)
     func isFavorite(_ city: City) -> Bool
+    func onViewAppear()
 }
 
 enum CitySearchViewAction {
@@ -105,6 +106,9 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
         .onChange(of: query) { oldQuery, newQuery in
             viewState.perform(.searchQuery(newQuery))
         }
+        .onAppear {
+            viewState.onViewAppear()
+        }
     }
 }
 
@@ -151,8 +155,13 @@ final class CitySearchViewStatePreview: CitySearchViewState, ObservableObject {
         // Mock implementation for preview
         return city.id == 1 || city.id == 3
     }
+    
+    func onViewAppear() {
+        // Mock implementation for preview
+    }
 }
 
 #Preview {
-    CitySearchView(viewState: CitySearchViewModel(favoritesService: FavoritesService()))
+    let servicesManager = ServicesManager()
+    CitySearchView(viewState: servicesManager.makeCitySearchViewModel())
 }

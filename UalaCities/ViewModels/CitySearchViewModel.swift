@@ -39,7 +39,10 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         self.favoritesService = favoritesService
         self.coordinator = coordinator
         setupBindings()
-        cityDataService.loadCities()
+        // Only load cities if they haven't been loaded yet
+        if !cityDataService.isDataLoaded {
+            cityDataService.loadCities()
+        }
     }
     
     convenience init(coordinator: (any Coordinator)? = nil, favoritesService: FavoritesService? = nil) {
@@ -68,6 +71,15 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         }
     }
     
+    /// Called when the view appears to ensure data is properly set up
+    func onViewAppear() {
+        // If data is loaded but we don't have any filtered results, initialize them
+        if cityDataService.isDataLoaded && filteredCityList.isEmpty {
+            currentSearchResults = cityDataService.cities
+            searchCities("")
+        }
+    }
+    
     // MARK: - Private Methods
     
     private func setupBindings() {
@@ -75,11 +87,25 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] cities in
                 self?.cityList = cities
-                self?.searchService.index(cities: cities)
+                // Only index if not already indexed
+                if !(self?.searchService.isIndexed ?? false) {
+                    self?.searchService.index(cities: cities)
+                }
                 self?.currentSearchResults = cities
                 self?.searchCities("")
             }
             .store(in: &cancellables)
+        
+        // If cities are already loaded when the view model is created, set them immediately
+        if cityDataService.isDataLoaded {
+            cityList = cityDataService.cities
+            // Only index if not already indexed
+            if !searchService.isIndexed {
+                searchService.index(cities: cityDataService.cities)
+            }
+            currentSearchResults = cityDataService.cities
+            searchCities("")
+        }
         
         cityDataService.$isLoading
             .receive(on: DispatchQueue.main)

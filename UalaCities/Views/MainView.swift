@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MainView: View {
     @StateObject private var coordinator = AppCoordinator()
+    @StateObject private var servicesManager = ServicesManager()
     private let viewFactory = ViewFactory()
     
     var body: some View {
@@ -42,12 +43,12 @@ struct MainView: View {
             .padding()
             .navigationTitle("UalaCities")
             .navigationDestination(for: NavigationDestination.self) { destination in
-                viewFactory.makeView(for: destination, coordinator: coordinator)
+                viewFactory.makeView(for: destination, coordinator: coordinator, servicesManager: servicesManager)
             }
         }
         .sheet(item: $coordinator.presentedSheet) { destination in
             NavigationView {
-                viewFactory.makeSheetView(for: destination, coordinator: coordinator)
+                viewFactory.makeSheetView(for: destination, coordinator: coordinator, servicesManager: servicesManager)
                     .navigationTitle("Search Cities")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
@@ -61,7 +62,7 @@ struct MainView: View {
         }
         .fullScreenCover(item: $coordinator.presentedFullScreenCover) { destination in
             NavigationView {
-                viewFactory.makeFullScreenView(for: destination, coordinator: coordinator)
+                viewFactory.makeFullScreenView(for: destination, coordinator: coordinator, servicesManager: servicesManager)
                     .navigationTitle("Search Cities")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
