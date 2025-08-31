@@ -14,13 +14,17 @@ protocol CitySearchViewState {
     var currentPage: Int { get }
     var hasMorePages: Bool { get }
     var isLoadingMore: Bool { get }
+    var favoritesCount: Int { get }
     func perform(_ action: CitySearchViewAction)
+    func isFavorite(_ city: City) -> Bool
 }
 
 enum CitySearchViewAction {
     case searchQuery(String)
     case selectCity(City)
     case loadMore
+    case toggleFavorite(City)
+    case showFavorites
 }
 
 struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
@@ -30,12 +34,29 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
     
     var body: some View {
         VStack {
-            TextField("Search city...", text: $query)
-                .textFieldStyle(.roundedBorder)
-                .padding()
-                .onSubmit {
-                    viewState.perform(.searchQuery(query))
+            HStack {
+                TextField("Search city...", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                
+                Button(action: {
+                    viewState.perform(.showFavorites)
+                }) {
+                    HStack {
+                        Image(systemName: "heart.fill")
+                            .foregroundColor(.red)
+                        Text("\(viewState.favoritesCount)")
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)
                 }
+            }
+            .padding()
+            .onSubmit {
+                viewState.perform(.searchQuery(query))
+            }
             
             // Loading indicator
             if viewState.isLoading {
@@ -45,8 +66,19 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
             
             List {
                 ForEach(viewState.filteredCityList, id: \.id) { city in
-                    Button("\(city.name), \(city.country)") {
-                        viewState.perform(.selectCity(city))
+                    HStack {
+                        Button("\(city.name), \(city.country)") {
+                            viewState.perform(.selectCity(city))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Button(action: {
+                            viewState.perform(.toggleFavorite(city))
+                        }) {
+                            Image(systemName: viewState.isFavorite(city) ? "heart.fill" : "heart")
+                                .foregroundColor(viewState.isFavorite(city) ? .red : .gray)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 
@@ -82,6 +114,7 @@ final class CitySearchViewStatePreview: CitySearchViewState, ObservableObject {
     var currentPage: Int = 1
     var hasMorePages: Bool = false
     var isLoadingMore: Bool = false
+    var favoritesCount: Int = 2
     
     @Published var cityList: [City] =         [
         City(id: 1, name: "Buenos Aires", country: "Argentina", coord: City.Coordinate(lon: -58.3816, lat: -34.6037)),
@@ -107,10 +140,19 @@ final class CitySearchViewStatePreview: CitySearchViewState, ObservableObject {
             print("Selected City: \(city.name)")
         case .loadMore:
             print("Load more requested")
+        case .toggleFavorite(let city):
+            print("Toggle favorite for: \(city.name)")
+        case .showFavorites:
+            print("Show favorites requested")
         }
+    }
+    
+    func isFavorite(_ city: City) -> Bool {
+        // Mock implementation for preview
+        return city.id == 1 || city.id == 3
     }
 }
 
 #Preview {
-    CitySearchView(viewState: CitySearchViewModel())
+    CitySearchView(viewState: CitySearchViewModel(favoritesService: FavoritesService()))
 }

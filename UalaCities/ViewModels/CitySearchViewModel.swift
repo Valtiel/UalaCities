@@ -19,11 +19,13 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     @Published var currentPage: Int = 1
     @Published var hasMorePages: Bool = false
     @Published var isLoadingMore: Bool = false
+    @Published var favoritesCount: Int = 0
     
     // MARK: - Private Properties
     
     private let searchService: CitySearchService
     private let cityDataService: CityDataService
+    let favoritesService: FavoritesService
     private let itemsPerPage: Int = 20
     private var cancellables = Set<AnyCancellable>()
     private weak var coordinator: (any Coordinator)?
@@ -31,18 +33,20 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     
     // MARK: - Initialization
     
-    init(searchService: CitySearchService, cityDataService: CityDataService, coordinator: (any Coordinator)? = nil) {
+    init(searchService: CitySearchService, cityDataService: CityDataService, favoritesService: FavoritesService, coordinator: (any Coordinator)? = nil) {
         self.searchService = searchService
         self.cityDataService = cityDataService
+        self.favoritesService = favoritesService
         self.coordinator = coordinator
         setupBindings()
         cityDataService.loadCities()
     }
     
-    convenience init(coordinator: (any Coordinator)? = nil) {
+    convenience init(coordinator: (any Coordinator)? = nil, favoritesService: FavoritesService? = nil) {
         let searchService = CitySearchService(strategy: TrieSearchStrategy())
         let cityDataService = CityDataService.withLocalFileProvider(fileName: "cities")
-        self.init(searchService: searchService, cityDataService: cityDataService, coordinator: coordinator)
+        let service = favoritesService ?? FavoritesService()
+        self.init(searchService: searchService, cityDataService: cityDataService, favoritesService: service, coordinator: coordinator)
     }
     
     // MARK: - Public Methods
@@ -57,6 +61,10 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             }
         case .loadMore:
             loadMoreCities()
+        case .toggleFavorite(let city):
+            toggleFavorite(city)
+        case .showFavorites:
+            showFavorites()
         }
     }
     
@@ -83,6 +91,12 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         cityDataService.$error
             .receive(on: DispatchQueue.main)
             .assign(to: \.error, on: self)
+            .store(in: &cancellables)
+        
+        favoritesService.$favoriteCities
+            .receive(on: DispatchQueue.main)
+            .map { $0.count }
+            .assign(to: \.favoritesCount, on: self)
             .store(in: &cancellables)
     }
     
@@ -132,6 +146,20 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             self?.isLoadingMore = false
             self?.updateFilteredList(with: self?.currentSearchResults ?? [])
         }
+    }
+    
+    private func toggleFavorite(_ city: City) {
+        favoritesService.toggleFavorite(city)
+    }
+    
+    private func showFavorites() {
+        Task { @MainActor in
+            coordinator?.presentSheet(.favorites)
+        }
+    }
+    
+    func isFavorite(_ city: City) -> Bool {
+        favoritesService.isFavorite(city)
     }
 }
 

@@ -20,6 +20,7 @@ enum NavigationDestination: Hashable {
 enum SheetDestination: Identifiable {
     case citySearch
     case cityDetail(City)
+    case favorites
     
     var id: String {
         switch self {
@@ -27,6 +28,8 @@ enum SheetDestination: Identifiable {
             return "citySearch"
         case .cityDetail(let city):
             return "cityDetail-\(city.id)"
+        case .favorites:
+            return "favorites"
         }
     }
 }

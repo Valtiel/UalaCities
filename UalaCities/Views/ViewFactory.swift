@@ -11,6 +11,10 @@ import SwiftUI
 @MainActor
 final class ViewFactory {
     
+    // MARK: - Shared Services
+    
+    private let sharedFavoritesService = FavoritesService()
+    
     // MARK: - View Creation Methods
     
     /// Creates a view based on the navigation destination
@@ -18,7 +22,7 @@ final class ViewFactory {
     func makeView(for destination: NavigationDestination, coordinator: any Coordinator) -> some View {
         switch destination {
         case .citySearch:
-            let viewModel = CitySearchViewModel(coordinator: coordinator)
+            let viewModel = CitySearchViewModel(coordinator: coordinator, favoritesService: sharedFavoritesService)
             CitySearchView(viewState: viewModel)
         case .cityDetail(let city):
             VStack {
@@ -45,7 +49,7 @@ final class ViewFactory {
     func makeSheetView(for destination: SheetDestination, coordinator: any Coordinator) -> some View {
         switch destination {
         case .citySearch:
-            let viewModel = CitySearchViewModel(coordinator: coordinator)
+            let viewModel = CitySearchViewModel(coordinator: coordinator, favoritesService: sharedFavoritesService)
             CitySearchView(viewState: viewModel)
         case .cityDetail(let city):
             VStack {
@@ -57,6 +61,9 @@ final class ViewFactory {
                     .font(.caption)
             }
             .navigationTitle(city.name)
+        case .favorites:
+            let viewModel = FavoritesViewModel(favoritesService: sharedFavoritesService, coordinator: coordinator)
+            FavoritesView(viewState: viewModel)
         }
     }
     
@@ -65,7 +72,7 @@ final class ViewFactory {
     func makeFullScreenView(for destination: FullScreenDestination, coordinator: any Coordinator) -> some View {
         switch destination {
         case .citySearch:
-            let viewModel = CitySearchViewModel(coordinator: coordinator)
+            let viewModel = CitySearchViewModel(coordinator: coordinator, favoritesService: sharedFavoritesService)
             CitySearchView(viewState: viewModel)
         }
     }
