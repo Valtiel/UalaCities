@@ -44,4 +44,25 @@ final class ServicesManagerTests: XCTestCase {
         // The view models should have access to the same service instances
         XCTAssertTrue(searchViewModel.favoritesService === favoritesViewModel.favoritesService)
     }
+    
+    func testServicesManagerCreatesCityDetailViewModel() {
+        // Given
+        let servicesManager = ServicesManager()
+        let city = City(
+            id: 1,
+            name: "Buenos Aires",
+            country: "Argentina",
+            coord: City.Coordinate(lon: -58.3816, lat: -34.6037)
+        )
+        
+        // When
+        let cityDetailViewModel = servicesManager.makeCityDetailViewModel(city: city)
+        
+        // Then
+        XCTAssertNotNil(cityDetailViewModel)
+        XCTAssertEqual(cityDetailViewModel.city.id, city.id)
+        XCTAssertEqual(cityDetailViewModel.city.name, city.name)
+        // The view model should have access to the same favorites service
+        XCTAssertTrue(cityDetailViewModel.favoritesService === servicesManager.favoritesService)
+    }
 }

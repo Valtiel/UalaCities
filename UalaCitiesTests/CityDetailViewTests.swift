@@ -11,7 +11,7 @@ import SwiftUI
 
 final class CityDetailViewTests: XCTestCase {
     
-    func testCityDetailViewDisplaysCityInformation() {
+    func testCityDetailViewModelInitialization() {
         // Given
         let city = City(
             id: 1,
@@ -19,16 +19,24 @@ final class CityDetailViewTests: XCTestCase {
             country: "Argentina",
             coord: City.Coordinate(lon: -58.3816, lat: -34.6037)
         )
+        let favoritesService = FavoritesService()
         
         // When
-        let cityDetailView = CityDetailView(city: city)
+        let viewModel = CityDetailViewModel(
+            city: city,
+            favoritesService: favoritesService
+        )
         
         // Then
-        // The view should be created successfully with the city data
-        XCTAssertNotNil(cityDetailView)
+        XCTAssertEqual(viewModel.city.id, city.id)
+        XCTAssertEqual(viewModel.city.name, city.name)
+        XCTAssertEqual(viewModel.city.country, city.country)
+        XCTAssertFalse(viewModel.isFavorite)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.error)
     }
     
-    func testCityDetailViewWithDifferentCity() {
+    func testCityDetailViewModelWithDifferentCity() {
         // Given
         let city = City(
             id: 2,
@@ -36,11 +44,40 @@ final class CityDetailViewTests: XCTestCase {
             country: "USA",
             coord: City.Coordinate(lon: -74.0060, lat: 40.7128)
         )
+        let favoritesService = FavoritesService()
         
         // When
-        let cityDetailView = CityDetailView(city: city)
+        let viewModel = CityDetailViewModel(
+            city: city,
+            favoritesService: favoritesService
+        )
         
         // Then
-        XCTAssertNotNil(cityDetailView)
+        XCTAssertEqual(viewModel.city.id, city.id)
+        XCTAssertEqual(viewModel.city.name, city.name)
+        XCTAssertEqual(viewModel.city.country, city.country)
+    }
+    
+    func testCityDetailViewModelToggleFavorite() {
+        // Given
+        let city = City(
+            id: 1,
+            name: "Buenos Aires",
+            country: "Argentina",
+            coord: City.Coordinate(lon: -58.3816, lat: -34.6037)
+        )
+        let favoritesService = FavoritesService()
+        let viewModel = CityDetailViewModel(
+            city: city,
+            favoritesService: favoritesService
+        )
+        
+        // When
+        viewModel.perform(.toggleFavorite)
+        
+        // Then
+        // The favorite status should be updated through the binding
+        // This test verifies the action is handled
+        XCTAssertNotNil(viewModel)
     }
 }

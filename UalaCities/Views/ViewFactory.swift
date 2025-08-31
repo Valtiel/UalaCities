@@ -21,7 +21,8 @@ final class ViewFactory {
             let viewModel = servicesManager.makeCitySearchViewModel(coordinator: coordinator)
             CitySearchView(viewState: viewModel)
         case .cityDetail(let city):
-            CityDetailView(city: city)
+            let viewModel = servicesManager.makeCityDetailViewModel(city: city, coordinator: coordinator)
+            CityDetailView(viewState: viewModel)
         case .settings:
             VStack {
                 Text("Settings")
@@ -40,7 +41,8 @@ final class ViewFactory {
             let viewModel = servicesManager.makeCitySearchViewModel(coordinator: coordinator)
             CitySearchView(viewState: viewModel)
         case .cityDetail(let city):
-            CityDetailView(city: city)
+            let viewModel = servicesManager.makeCityDetailViewModel(city: city, coordinator: coordinator)
+            CityDetailView(viewState: viewModel)
         case .favorites:
             let viewModel = servicesManager.makeFavoritesViewModel(coordinator: coordinator)
             FavoritesView(viewState: viewModel)
