@@ -77,7 +77,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "")
+        let results = await strategy.search(query: "")
         
         #expect(results.isEmpty)
     }
@@ -86,7 +86,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "   ")
+        let results = await strategy.search(query: "   ")
         
         #expect(results.isEmpty)
     }
@@ -95,7 +95,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Buenos")
+        let results = await strategy.search(query: "Buenos")
         
         #expect(results.count == 1)
         #expect(results.first?.name == "Buenos Aires")
@@ -105,9 +105,9 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results1 = strategy.search(query: "buenos")
-        let results2 = strategy.search(query: "BUENOS")
-        let results3 = strategy.search(query: "Buenos")
+        let results1 = await strategy.search(query: "buenos")
+        let results2 = await strategy.search(query: "BUENOS")
+        let results3 = await strategy.search(query: "Buenos")
         
         #expect(results1.count == 1)
         #expect(results2.count == 1)
@@ -121,7 +121,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Argentina")
+        let results = await strategy.search(query: "Argentina")
         
         #expect(results.count == 1)
         #expect(results.first?.country == "Argentina")
@@ -131,7 +131,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Buenos Aires, Argentina")
+        let results = await strategy.search(query: "Buenos Aires, Argentina")
         
         #expect(results.count == 1)
         #expect(results.first?.displayName == "Buenos Aires, Argentina")
@@ -141,7 +141,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Buenos Aires,")
+        let results = await strategy.search(query: "Buenos Aires,")
         
         #expect(results.count == 1)
         #expect(results.first?.displayName == "Buenos Aires, Argentina")
@@ -151,7 +151,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "São")
+        let results = await strategy.search(query: "São")
         
         #expect(results.count == 1)
         #expect(results.first?.name == "São Paulo")
@@ -161,7 +161,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "NonExistentCity")
+        let results = await strategy.search(query: "NonExistentCity")
         
         #expect(results.isEmpty)
     }
@@ -179,7 +179,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: cities)
         
-        let results = strategy.search(query: "New")
+        let results = await strategy.search(query: "New")
         
         #expect(results.count == 4)
         #expect(results.allSatisfy { $0.name.hasPrefix("New") })
@@ -195,7 +195,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: cities)
         
-        let results = strategy.search(query: "New")
+        let results = await strategy.search(query: "New")
         
         #expect(results.count == 3)
         #expect(results[0].name == "Newark")
@@ -207,7 +207,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "B")
+        let results = await strategy.search(query: "B")
         
         #expect(results.count > 0)
         #expect(results.allSatisfy { $0.name.hasPrefix("B") || $0.country.hasPrefix("B") })
@@ -217,7 +217,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Buenos Aires")
+        let results = await strategy.search(query: "Buenos Aires")
         
         #expect(results.count == 1)
         #expect(results.first?.name == "Buenos Aires")
@@ -240,7 +240,7 @@ struct BinarySearchStrategyTests {
         
         #expect(strategy.indexedCityCount == 1000)
         
-        let results = strategy.search(query: "City1")
+        let results = await strategy.search(query: "City1")
         
         #expect(results.count > 0)
         #expect(results.allSatisfy { $0.name.hasPrefix("City1") })
@@ -261,7 +261,7 @@ struct BinarySearchStrategyTests {
         
         // Measure search performance
         let startTime = CFAbsoluteTimeGetCurrent()
-        let results = strategy.search(query: "City1")
+        let results = await strategy.search(query: "City1")
         let endTime = CFAbsoluteTimeGetCurrent()
         
         let searchTime = endTime - startTime
@@ -281,7 +281,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: duplicateCities)
         
-        let results = strategy.search(query: "Buenos")
+        let results = await strategy.search(query: "Buenos")
         
         #expect(results.count == 2)
         #expect(results.allSatisfy { $0.name == "Buenos Aires" })
@@ -301,7 +301,7 @@ struct BinarySearchStrategyTests {
         let strategy = BinarySearchStrategy()
         strategy.index(cities: singleCity)
         
-        let results = strategy.search(query: "Buenos")
+        let results = await strategy.search(query: "Buenos")
         
         #expect(results.count == 1)
         #expect(results.first?.name == "Buenos Aires")
@@ -318,9 +318,9 @@ struct BinarySearchStrategyTests {
         strategy.index(cities: cities)
         
         // Test boundary conditions
-        let resultsA = strategy.search(query: "A")
-        let resultsB = strategy.search(query: "B")
-        let resultsC = strategy.search(query: "C")
+        let resultsA = await strategy.search(query: "A")
+        let resultsB = await strategy.search(query: "B")
+        let resultsC = await strategy.search(query: "C")
         
         #expect(resultsA.count == 1)
         #expect(resultsB.count == 1)

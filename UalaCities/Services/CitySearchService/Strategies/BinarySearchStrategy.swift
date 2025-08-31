@@ -32,41 +32,48 @@ class BinarySearchStrategy: CitySearchStrategy {
         citiesByDisplayName = cities.sorted { $0.displayName.lowercased() < $1.displayName.lowercased() }
     }
     
-    func search(query: String) -> [City] {
-        let normalizedQuery = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        if normalizedQuery.isEmpty {
-            return []
-        }
-        
-        var results: Set<City> = []
-        
-        // Search by city name
-        let nameResults = binarySearchPrefix(array: citiesByName, query: normalizedQuery, field: { $0.name.lowercased() })
-        results.formUnion(nameResults)
-        
-        // Search by country name
-        let countryResults = binarySearchPrefix(array: citiesByCountry, query: normalizedQuery, field: { $0.country.lowercased() })
-        results.formUnion(countryResults)
-        
-        // Search by display name
-        let displayResults = binarySearchPrefix(array: citiesByDisplayName, query: normalizedQuery, field: { $0.displayName.lowercased() })
-        results.formUnion(displayResults)
-        
-        // Convert to array and sort by relevance
-        let sortedResults = Array(results).sorted { city1, city2 in
-            let score1 = calculateRelevanceScore(city: city1, query: normalizedQuery)
-            let score2 = calculateRelevanceScore(city: city2, query: normalizedQuery)
+    func search(query: String) async -> [City] {
+        do {
+            // Add a small delay to prevent blocking the UI
+            try await Task.sleep(nanoseconds: 1_000_000) // 1ms delay
             
-            if score1 != score2 {
-                return score1 > score2
+            let normalizedQuery = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if normalizedQuery.isEmpty {
+                return []
             }
             
-            // If scores are equal, sort alphabetically by display name
-            return city1.displayName < city2.displayName
+            var results: Set<City> = []
+            
+            // Search by city name
+            let nameResults = binarySearchPrefix(array: citiesByName, query: normalizedQuery, field: { $0.name.lowercased() })
+            results.formUnion(nameResults)
+            
+            // Search by country name
+            let countryResults = binarySearchPrefix(array: citiesByCountry, query: normalizedQuery, field: { $0.country.lowercased() })
+            results.formUnion(countryResults)
+            
+            // Search by display name
+            let displayResults = binarySearchPrefix(array: citiesByDisplayName, query: normalizedQuery, field: { $0.displayName.lowercased() })
+            results.formUnion(displayResults)
+            
+            // Convert to array and sort by relevance
+            let sortedResults = Array(results).sorted { city1, city2 in
+                let score1 = calculateRelevanceScore(city: city1, query: normalizedQuery)
+                let score2 = calculateRelevanceScore(city: city2, query: normalizedQuery)
+                
+                if score1 != score2 {
+                    return score1 > score2
+                }
+                
+                // If scores are equal, sort alphabetically by display name
+                return city1.displayName < city2.displayName
+            }
+            
+            return sortedResults
+        } catch {
+            return []
         }
-        
-        return sortedResults
     }
     
     func clear() {

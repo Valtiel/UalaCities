@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Combine
 
 /// Simple test runner for CityDataProvider functionality
 @MainActor
@@ -16,24 +15,16 @@ class CityDataProviderTests {
         print("🧪 Starting LocalFileCityDataProvider test...")
         
         let provider = LocalFileCityDataProvider(fileName: "cities")
-        let progressSubject = PassthroughSubject<Double, Never>()
         
         var progressValues: [Double] = []
         var loadedCities: [City] = []
         var receivedError: Error?
-        var cancellables = Set<AnyCancellable>()
         
-        // Track progress
-        progressSubject
-            .sink { progress in
+        do {
+            let cities = try await provider.fetchCities { progress in
                 progressValues.append(progress)
                 print("📊 Progress: \(Int(progress * 100))%")
             }
-            .store(in: &cancellables)
-        
-        do {
-            let cities = try await provider.fetchCities(progress: progressSubject)
-                .async()
             
             loadedCities = cities
             
@@ -93,22 +84,14 @@ class CityDataProviderTests {
         ]
         
         let provider = MockCityDataProvider(cities: mockCities, delay: 0.5)
-        let progressSubject = PassthroughSubject<Double, Never>()
         
         var progressValues: [Double] = []
-        var cancellables = Set<AnyCancellable>()
         
-        // Track progress
-        progressSubject
-            .sink { progress in
+        do {
+            let cities = try await provider.fetchCities { progress in
                 progressValues.append(progress)
                 print("📊 Progress: \(Int(progress * 100))%")
             }
-            .store(in: &cancellables)
-        
-        do {
-            let cities = try await provider.fetchCities(progress: progressSubject)
-                .async()
             
             print("✅ Successfully loaded \(cities.count) mock cities")
             print("📋 Mock cities:")
@@ -123,30 +106,30 @@ class CityDataProviderTests {
             print("💥 Mock test FAILED!")
         }
     }
-}
-
-// MARK: - Combine Extensions
-
-extension Publisher {
-    func async() async throws -> Output {
-        try await withCheckedThrowingContinuation { continuation in
-            var cancellable: AnyCancellable?
-            cancellable = first()
-                .sink(
-                    receiveCompletion: { completion in
-                        switch completion {
-                        case .finished:
-                            break
-                        case .failure(let error):
-                            continuation.resume(throwing: error)
-                        }
-                        cancellable?.cancel()
-                    },
-                    receiveValue: { value in
-                        continuation.resume(returning: value)
-                        cancellable?.cancel()
-                    }
-                )
+    
+    static func runNetworkTest() async {
+        print("🧪 Starting NetworkCityDataProvider test...")
+        
+        // Note: This would need a real URL to test
+        // For now, we'll just test the structure
+        guard let url = URL(string: "https://example.com/cities.json") else {
+            print("❌ Invalid URL")
+            return
+        }
+        
+        let provider = NetworkCityDataProvider(url: url)
+        
+        do {
+            let cities = try await provider.fetchCities { progress in
+                print("📊 Progress: \(Int(progress * 100))%")
+            }
+            
+            print("✅ Successfully loaded \(cities.count) cities from network")
+            print("🎉 Network test PASSED!")
+            
+        } catch {
+            print("❌ Error in network test: \(error.localizedDescription)")
+            print("💥 Network test FAILED!")
         }
     }
 }

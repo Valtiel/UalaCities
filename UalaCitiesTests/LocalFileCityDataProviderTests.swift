@@ -6,62 +6,23 @@
 //
 
 import XCTest
-import Combine
 @testable import UalaCities
 
 @MainActor
 final class LocalFileCityDataProviderTests: XCTestCase {
     
-    var cancellables: Set<AnyCancellable>!
-    
-    override func setUp() {
-        super.setUp()
-        cancellables = Set<AnyCancellable>()
-    }
-    
-    override func tearDown() {
-        cancellables = nil
-        super.tearDown()
-    }
-    
-    func testLoadCitiesFromLocalFile() async {
+    func testLoadCitiesFromLocalFile() async throws {
         // Given
         let provider = LocalFileCityDataProvider(fileName: "cities")
-        let progressSubject = PassthroughSubject<Double, Never>()
         var progressValues: [Double] = []
         var loadedCities: [City] = []
-        var receivedError: Error?
         
         // When
-        let expectation = XCTestExpectation(description: "Cities loaded from local file")
-        
-        provider.fetchCities(progress: progressSubject)
-            .sink(
-                receiveCompletion: { completion in
-                    if case .failure(let error) = completion {
-                        receivedError = error
-                    }
-                    expectation.fulfill()
-                },
-                receiveValue: { cities in
-                    loadedCities = cities
-                }
-            )
-            .store(in: &cancellables)
-        
-        // Track progress
-        progressSubject
-            .sink { progress in
-                progressValues.append(progress)
-            }
-            .store(in: &cancellables)
+        loadedCities = try await provider.fetchCities { progress in
+            progressValues.append(progress)
+        }
         
         // Then
-        await fulfillment(of: [expectation], timeout: 10.0)
-        
-        // Verify no errors occurred
-        XCTAssertNil(receivedError, "Should not have received an error: \(receivedError?.localizedDescription ?? "Unknown error")")
-        
         // Verify cities were loaded
         XCTAssertGreaterThan(loadedCities.count, 0, "Should have loaded at least one city")
         
@@ -91,38 +52,35 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Cities loaded via CityDataService")
         
         // Observe service state
-        service.$cities
-            .dropFirst() // Skip initial empty array
-            .sink { cities in
-                loadedCities = cities
-                if !cities.isEmpty {
-                    expectation.fulfill()
-                }
+        let citiesObservation = service.$cities.sink { cities in
+            loadedCities = cities
+            if !cities.isEmpty {
+                expectation.fulfill()
             }
-            .store(in: &cancellables)
+        }
         
-        service.$isLoading
-            .sink { loading in
-                isLoading = loading
-            }
-            .store(in: &cancellables)
+        let loadingObservation = service.$isLoading.sink { loading in
+            isLoading = loading
+        }
         
-        service.$progress
-            .sink { prog in
-                progress = prog
-            }
-            .store(in: &cancellables)
+        let progressObservation = service.$progress.sink { prog in
+            progress = prog
+        }
         
-        service.$error
-            .sink { err in
-                error = err
-            }
-            .store(in: &cancellables)
+        let errorObservation = service.$error.sink { err in
+            error = err
+        }
         
         service.loadCities()
         
         // Then
         await fulfillment(of: [expectation], timeout: 10.0)
+        
+        // Clean up observations
+        citiesObservation.cancel()
+        loadingObservation.cancel()
+        progressObservation.cancel()
+        errorObservation.cancel()
         
         // Verify service state
         XCTAssertFalse(isLoading, "Service should not be loading after completion")
@@ -147,17 +105,15 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         // When
         let expectation = XCTestExpectation(description: "Cities loaded for search test")
         
-        service.$cities
-            .dropFirst()
-            .sink { cities in
-                if !cities.isEmpty {
-                    expectation.fulfill()
-                }
+        let observation = service.$cities.sink { cities in
+            if !cities.isEmpty {
+                expectation.fulfill()
             }
-            .store(in: &cancellables)
+        }
         
         service.loadCities()
         await fulfillment(of: [expectation], timeout: 10.0)
+        observation.cancel()
         
         // Then
         let allCities = service.cities
@@ -179,29 +135,16 @@ final class LocalFileCityDataProviderTests: XCTestCase {
     func testFileNotFoundError() async {
         // Given
         let provider = LocalFileCityDataProvider(fileName: "nonexistent_file")
-        let progressSubject = PassthroughSubject<Double, Never>()
         var receivedError: Error?
         
         // When
-        let expectation = XCTestExpectation(description: "File not found error")
-        
-        provider.fetchCities(progress: progressSubject)
-            .sink(
-                receiveCompletion: { completion in
-                    if case .failure(let error) = completion {
-                        receivedError = error
-                    }
-                    expectation.fulfill()
-                },
-                receiveValue: { _ in
-                    // Should not receive any cities
-                }
-            )
-            .store(in: &cancellables)
+        do {
+            _ = try await provider.fetchCities { _ in }
+        } catch {
+            receivedError = error
+        }
         
         // Then
-        await fulfillment(of: [expectation], timeout: 5.0)
-        
         // Verify error type
         XCTAssertNotNil(receivedError, "Should have received an error")
         XCTAssertTrue(receivedError is CityDataError, "Error should be CityDataError")
@@ -211,33 +154,17 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         }
     }
     
-    func testProgressReporting() async {
+    func testProgressReporting() async throws {
         // Given
         let provider = LocalFileCityDataProvider(fileName: "cities")
-        let progressSubject = PassthroughSubject<Double, Never>()
         var progressValues: [Double] = []
         
         // When
-        let expectation = XCTestExpectation(description: "Progress reporting test")
-        
-        provider.fetchCities(progress: progressSubject)
-            .sink(
-                receiveCompletion: { _ in
-                    expectation.fulfill()
-                },
-                receiveValue: { _ in }
-            )
-            .store(in: &cancellables)
-        
-        progressSubject
-            .sink { progress in
-                progressValues.append(progress)
-            }
-            .store(in: &cancellables)
+        _ = try await provider.fetchCities { progress in
+            progressValues.append(progress)
+        }
         
         // Then
-        await fulfillment(of: [expectation], timeout: 10.0)
-        
         // Verify progress values
         XCTAssertGreaterThan(progressValues.count, 0, "Should have received progress updates")
         XCTAssertGreaterThanOrEqual(progressValues.first ?? 0, 0.0, "First progress should be >= 0")
@@ -250,29 +177,15 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         }
     }
     
-    func testCityDataStructure() async {
+    func testCityDataStructure() async throws {
         // Given
         let provider = LocalFileCityDataProvider(fileName: "cities")
-        let progressSubject = PassthroughSubject<Double, Never>()
         var loadedCities: [City] = []
         
         // When
-        let expectation = XCTestExpectation(description: "City data structure test")
-        
-        provider.fetchCities(progress: progressSubject)
-            .sink(
-                receiveCompletion: { _ in
-                    expectation.fulfill()
-                },
-                receiveValue: { cities in
-                    loadedCities = cities
-                }
-            )
-            .store(in: &cancellables)
+        loadedCities = try await provider.fetchCities { _ in }
         
         // Then
-        await fulfillment(of: [expectation], timeout: 10.0)
-        
         XCTAssertGreaterThan(loadedCities.count, 0, "Should have loaded cities")
         
         // Verify each city has valid data
@@ -287,45 +200,20 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         }
     }
     
-    func testConcurrentLoads() async {
+    func testConcurrentLoads() async throws {
         // Given
         let provider = LocalFileCityDataProvider(fileName: "cities")
-        let progressSubject1 = PassthroughSubject<Double, Never>()
-        let progressSubject2 = PassthroughSubject<Double, Never>()
         var results1: [City] = []
         var results2: [City] = []
         
         // When
-        let expectation1 = XCTestExpectation(description: "First concurrent load")
-        let expectation2 = XCTestExpectation(description: "Second concurrent load")
+        async let load1 = provider.fetchCities { _ in }
+        async let load2 = provider.fetchCities { _ in }
         
-        // Start first load
-        provider.fetchCities(progress: progressSubject1)
-            .sink(
-                receiveCompletion: { _ in
-                    expectation1.fulfill()
-                },
-                receiveValue: { cities in
-                    results1 = cities
-                }
-            )
-            .store(in: &cancellables)
-        
-        // Start second load
-        provider.fetchCities(progress: progressSubject2)
-            .sink(
-                receiveCompletion: { _ in
-                    expectation2.fulfill()
-                },
-                receiveValue: { cities in
-                    results2 = cities
-                }
-            )
-            .store(in: &cancellables)
+        results1 = try await load1
+        results2 = try await load2
         
         // Then
-        await fulfillment(of: [expectation1, expectation2], timeout: 15.0)
-        
         // Verify both loads completed successfully
         XCTAssertGreaterThan(results1.count, 0, "First load should have results")
         XCTAssertGreaterThan(results2.count, 0, "Second load should have results")

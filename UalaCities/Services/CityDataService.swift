@@ -6,10 +6,8 @@
 //
 
 import Foundation
-import Combine
 
 /// Service that manages city data loading and provides access to the city list
-@MainActor
 final class CityDataService: ObservableObject {
     
     // MARK: - Published Properties
@@ -22,7 +20,7 @@ final class CityDataService: ObservableObject {
     // MARK: - Private Properties
     
     private let dataProvider: CityDataProvider
-    private var cancellables = Set<AnyCancellable>()
+    private var loadingTask: Task<Void, Never>?
     
     // MARK: - Initialization
     
@@ -36,40 +34,43 @@ final class CityDataService: ObservableObject {
     func loadCities() {
         guard !isLoading else { return }
         
+        // Cancel any existing loading task
+        loadingTask?.cancel()
+        
         isLoading = true
         progress = 0.0
         error = nil
         
-        let progressSubject = PassthroughSubject<Double, Never>()
-        
-        // Subscribe to progress updates
-        progressSubject
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] progress in
-                self?.progress = progress
-            }
-            .store(in: &cancellables)
-        
-        // Load cities
-        dataProvider.fetchCities(progress: progressSubject)
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { [weak self] completion in
-                    self?.isLoading = false
-                    if case .failure(let error) = completion {
-                        self?.error = error
+        loadingTask = Task { [weak self] in
+            guard let self = self else { return }
+            
+            do {
+                let cities = try await self.dataProvider.fetchCities { progress in
+                    Task { @MainActor in
+                        self.progress = progress
                     }
-                },
-                receiveValue: { [weak self] cities in
-                    self?.cities = cities
                 }
-            )
-            .store(in: &cancellables)
+                
+                // Check if task was cancelled
+                try Task.checkCancellation()
+                
+                await MainActor.run {
+                    self.cities = cities
+                    self.isLoading = false
+                    self.progress = 1.0
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error
+                    self.isLoading = false
+                }
+            }
+        }
     }
     
     /// Reloads cities from the data provider
     func reloadCities() {
-        cancellables.removeAll()
+        loadingTask?.cancel()
         loadCities()
     }
     
@@ -88,6 +89,10 @@ final class CityDataService: ObservableObject {
     /// Returns a city by its ID
     func city(withId id: Int) -> City? {
         return cities.first { $0.id == id }
+    }
+    
+    deinit {
+        loadingTask?.cancel()
     }
 }
 

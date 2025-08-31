@@ -6,23 +6,10 @@
 //
 
 import XCTest
-import Combine
 @testable import UalaCities
 
 @MainActor
 final class CityDataServiceTests: XCTestCase {
-    
-    var cancellables: Set<AnyCancellable>!
-    
-    override func setUp() {
-        super.setUp()
-        cancellables = Set<AnyCancellable>()
-    }
-    
-    override func tearDown() {
-        cancellables = nil
-        super.tearDown()
-    }
     
     func testMockProviderLoadsCities() async {
         // Given
@@ -33,19 +20,24 @@ final class CityDataServiceTests: XCTestCase {
         
         // When
         let expectation = XCTestExpectation(description: "Cities loaded")
-        service.$cities
-            .dropFirst() // Skip initial empty array
-            .sink { cities in
-                XCTAssertEqual(cities.count, 1)
-                XCTAssertEqual(cities.first?.name, "Test City")
+        var loadedCities: [City] = []
+        
+        // Observe cities changes
+        let observation = service.$cities.sink { cities in
+            if !cities.isEmpty {
+                loadedCities = cities
                 expectation.fulfill()
             }
-            .store(in: &cancellables)
+        }
         
         service.loadCities()
         
         // Then
         await fulfillment(of: [expectation], timeout: 2.0)
+        observation.cancel()
+        
+        XCTAssertEqual(loadedCities.count, 1)
+        XCTAssertEqual(loadedCities.first?.name, "Test City")
     }
     
     func testProgressUpdates() async {
@@ -55,20 +47,20 @@ final class CityDataServiceTests: XCTestCase {
         
         // When
         let expectation = XCTestExpectation(description: "Progress updates received")
-        service.$progress
-            .dropFirst() // Skip initial 0.0
-            .sink { progress in
-                progressValues.append(progress)
-                if progress >= 1.0 {
-                    expectation.fulfill()
-                }
+        
+        let observation = service.$progress.sink { progress in
+            progressValues.append(progress)
+            if progress >= 1.0 {
+                expectation.fulfill()
             }
-            .store(in: &cancellables)
+        }
         
         service.loadCities()
         
         // Then
         await fulfillment(of: [expectation], timeout: 2.0)
+        observation.cancel()
+        
         XCTAssertGreaterThan(progressValues.count, 1)
         XCTAssertEqual(progressValues.last, 1.0)
     }
@@ -84,15 +76,16 @@ final class CityDataServiceTests: XCTestCase {
         
         // When
         let expectation = XCTestExpectation(description: "Cities loaded")
-        service.$cities
-            .dropFirst()
-            .sink { _ in
+        
+        let observation = service.$cities.sink { cities in
+            if !cities.isEmpty {
                 expectation.fulfill()
             }
-            .store(in: &cancellables)
+        }
         
         service.loadCities()
         await fulfillment(of: [expectation], timeout: 2.0)
+        observation.cancel()
         
         // Then
         let searchResults = service.searchCities(query: "New")
@@ -112,15 +105,16 @@ final class CityDataServiceTests: XCTestCase {
         
         // When
         let expectation = XCTestExpectation(description: "Cities loaded")
-        service.$cities
-            .dropFirst()
-            .sink { _ in
+        
+        let observation = service.$cities.sink { cities in
+            if !cities.isEmpty {
                 expectation.fulfill()
             }
-            .store(in: &cancellables)
+        }
         
         service.loadCities()
         await fulfillment(of: [expectation], timeout: 2.0)
+        observation.cancel()
         
         // Then
         let foundCity = service.city(withId: 1)
@@ -129,5 +123,30 @@ final class CityDataServiceTests: XCTestCase {
         
         let notFoundCity = service.city(withId: 999)
         XCTAssertNil(notFoundCity)
+    }
+    
+    func testErrorHandling() async {
+        // Given
+        let service = CityDataService.withMockProvider(cities: [], delay: 0.1)
+        
+        // When
+        let expectation = XCTestExpectation(description: "Error handling test")
+        var receivedError: Error?
+        
+        let errorObservation = service.$error.sink { error in
+            receivedError = error
+            if error != nil {
+                expectation.fulfill()
+            }
+        }
+        
+        service.loadCities()
+        
+        // Then
+        await fulfillment(of: [expectation], timeout: 2.0)
+        errorObservation.cancel()
+        
+        // Note: This test might not always pass depending on the mock implementation
+        // It's here to test the error handling infrastructure
     }
 }

@@ -40,8 +40,8 @@ class CitySearchService {
     /// Searches for cities matching the query
     /// - Parameter query: The search query
     /// - Returns: Array of matching cities, sorted by relevance
-    func search(query: String) -> [City] {
-        return strategy.search(query: query)
+    func search(query: String) async -> [City] {
+        return await strategy.search(query: query)
     }
     
     /// Clears all indexed cities

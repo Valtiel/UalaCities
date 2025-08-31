@@ -17,7 +17,7 @@ protocol CitySearchStrategy {
     /// Searches for cities that match the given query
     /// - Parameter query: The search query string
     /// - Returns: Array of matching cities, sorted by relevance
-    func search(query: String) -> [City]
+    func search(query: String) async -> [City]
     
     /// Clears all indexed cities
     func clear()

@@ -45,7 +45,7 @@ struct CitySearchServiceTests {
         
         service.index(cities: testCities)
         
-        let results = service.search(query: "Buenos")
+        let results = await service.search(query: "Buenos")
         
         #expect(results.count == 1)
         #expect(results.first?.name == "Buenos Aires")
@@ -60,7 +60,7 @@ struct CitySearchServiceTests {
         
         service.clear()
         #expect(service.indexedCityCount == 0)
-        #expect(service.search(query: "Buenos").isEmpty)
+        #expect(await service.search(query: "Buenos").isEmpty)
     }
     
     // MARK: - Strategy Switching Tests
@@ -78,13 +78,13 @@ struct CitySearchServiceTests {
         
         // The new strategy should be empty
         #expect(service.indexedCityCount == 0)
-        #expect(service.search(query: "Buenos").isEmpty)
+        #expect(await service.search(query: "Buenos").isEmpty)
         
         // Index cities in the new strategy
         service.index(cities: testCities)
         #expect(service.indexedCityCount == 3)
         
-        let results = service.search(query: "Buenos")
+        let results = await service.search(query: "Buenos")
         #expect(results.count == 1)
         #expect(results.first?.name == "Buenos Aires")
     }
@@ -101,8 +101,8 @@ struct CitySearchServiceTests {
         service.setStrategy(strategy2)
         
         #expect(service.indexedCityCount == 1)
-        #expect(service.search(query: "Paris").count == 1)
-        #expect(service.search(query: "Buenos").isEmpty)
+        #expect(await service.search(query: "Paris").count == 1)
+        #expect(await service.search(query: "Buenos").isEmpty)
     }
     
     // MARK: - Integration Tests
@@ -113,7 +113,7 @@ struct CitySearchServiceTests {
         
         service.index(cities: testCities)
         
-        let results = service.search(query: "")
+        let results = await service.search(query: "")
         
         #expect(results.isEmpty)
     }
@@ -124,7 +124,7 @@ struct CitySearchServiceTests {
         
         service.index(cities: testCities)
         
-        let results = service.search(query: "   ")
+        let results = await service.search(query: "   ")
         
         #expect(results.isEmpty)
     }
@@ -135,9 +135,9 @@ struct CitySearchServiceTests {
         
         service.index(cities: testCities)
         
-        let results1 = service.search(query: "buenos")
-        let results2 = service.search(query: "BUENOS")
-        let results3 = service.search(query: "Buenos")
+        let results1 = await service.search(query: "buenos")
+        let results2 = await service.search(query: "BUENOS")
+        let results3 = await service.search(query: "Buenos")
         
         #expect(results1.count == 1)
         #expect(results2.count == 1)
@@ -154,17 +154,17 @@ struct CitySearchServiceTests {
         service.index(cities: testCities)
         
         // Search by city name
-        let cityResults = service.search(query: "Buenos")
+        let cityResults = await service.search(query: "Buenos")
         #expect(cityResults.count == 1)
         #expect(cityResults.first?.name == "Buenos Aires")
         
         // Search by country name
-        let countryResults = service.search(query: "Argentina")
+        let countryResults = await service.search(query: "Argentina")
         #expect(countryResults.count == 1)
         #expect(countryResults.first?.country == "Argentina")
         
         // Search by display name
-        let displayResults = service.search(query: "Buenos Aires, Argentina")
+        let displayResults = await service.search(query: "Buenos Aires, Argentina")
         #expect(displayResults.count == 1)
         #expect(displayResults.first?.displayName == "Buenos Aires, Argentina")
     }
@@ -175,7 +175,7 @@ struct CitySearchServiceTests {
         
         service.index(cities: testCities)
         
-        let results = service.search(query: "NonExistentCity")
+        let results = await service.search(query: "NonExistentCity")
         
         #expect(results.isEmpty)
     }
@@ -191,7 +191,7 @@ struct CitySearchServiceTests {
         service.index(cities: newCities)
         
         #expect(service.indexedCityCount == 1)
-        #expect(service.search(query: "Buenos").isEmpty)
-        #expect(service.search(query: "Paris").count == 1)
+        #expect(await service.search(query: "Buenos").isEmpty)
+        #expect(await service.search(query: "Paris").count == 1)
     }
 }

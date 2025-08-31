@@ -10,12 +10,17 @@ import SwiftUI
 protocol CitySearchViewState {
     var cityList: [City] { get }
     var filteredCityList: [City] { get }
+    var progress: Double { get }
+    var currentPage: Int { get }
+    var hasMorePages: Bool { get }
+    var isLoadingMore: Bool { get }
     func perform(_ action: CitySearchViewAction)
 }
 
 enum CitySearchViewAction {
     case searchQuery(String)
     case selectCity(City)
+    case loadMore
 }
 
 struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
@@ -32,9 +37,36 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
                     viewState.perform(.searchQuery(query))
                 }
             
-            List(viewState.filteredCityList, id: \.id) { city in
-                Button(city.name) {
-                    viewState.perform(.selectCity(city))
+            // Progress bar
+            if viewState.progress < 1.0 {
+                ProgressView(value: viewState.progress)
+                    .progressViewStyle(LinearProgressViewStyle())
+                    .padding(.horizontal)
+            }
+            
+            List {
+                ForEach(viewState.filteredCityList, id: \.id) { city in
+                    Button(city.name) {
+                        viewState.perform(.selectCity(city))
+                    }
+                }
+                
+                // Load more button
+                if viewState.hasMorePages {
+                    HStack {
+                        Spacer()
+                        if viewState.isLoadingMore {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Button("Load More") {
+                                viewState.perform(.loadMore)
+                            }
+                            .foregroundColor(.blue)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
                 }
             }
         }
@@ -47,6 +79,10 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
 
 //MARK: - Preview
 final class CitySearchViewStatePreview: CitySearchViewState, ObservableObject {
+    var progress: Double = 1
+    var currentPage: Int = 1
+    var hasMorePages: Bool = false
+    var isLoadingMore: Bool = false
     
     @Published var cityList: [City] =         [
         City(id: 1, name: "Buenos Aires", country: "Argentina", coord: City.Coordinate(lon: -58.3816, lat: -34.6037)),
@@ -70,6 +106,8 @@ final class CitySearchViewStatePreview: CitySearchViewState, ObservableObject {
             }
         case .selectCity(let city):
             print("Selected City: \(city.name)")
+        case .loadMore:
+            print("Load more requested")
         }
     }
 }

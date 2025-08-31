@@ -6,15 +6,14 @@
 //
 
 import Foundation
-import Combine
 
 /// Protocol defining the interface for city data providers
 protocol CityDataProvider {
     
     /// Fetches cities with progress reporting
-    /// - Parameter progress: Publisher that emits progress updates (0.0 to 1.0)
-    /// - Returns: Publisher that emits the array of cities
-    func fetchCities(progress: PassthroughSubject<Double, Never>) -> AnyPublisher<[City], Error>
+    /// - Parameter progress: Closure that receives progress updates (0.0 to 1.0)
+    /// - Returns: Array of cities
+    func fetchCities(progress: @escaping (Double) -> Void) async throws -> [City]
 }
 
 /// Network-based city data provider that fetches from a remote JSON endpoint
@@ -28,29 +27,23 @@ final class NetworkCityDataProvider: CityDataProvider {
         self.session = session
     }
     
-    func fetchCities(progress: PassthroughSubject<Double, Never>) -> AnyPublisher<[City], Error> {
-        return session.dataTaskPublisher(for: url)
-            .tryMap { data, response in
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200 else {
-                    throw CityDataError.invalidResponse
-                }
-                return data
-            }
-            .handleEvents(receiveSubscription: { _ in
-                progress.send(0.1) // Started
-            }, receiveOutput: { _ in
-                progress.send(0.5) // Data received
-            })
-            .decode(type: [City].self, decoder: JSONDecoder())
-            .handleEvents(receiveOutput: { _ in
-                progress.send(0.9) // Decoded
-            })
-            .map { cities in
-                progress.send(1.0) // Complete
-                return cities
-            }
-            .eraseToAnyPublisher()
+    func fetchCities(progress: @escaping (Double) -> Void) async throws -> [City] {
+        progress(0.1) // Started
+        
+        let (data, response) = try await session.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw CityDataError.invalidResponse
+        }
+        
+        progress(0.5) // Data received
+        
+        let cities = try JSONDecoder().decode([City].self, from: data)
+        progress(0.9) // Decoded
+        progress(1.0) // Complete
+        
+        return cities
     }
 }
 
@@ -65,42 +58,23 @@ final class LocalFileCityDataProvider: CityDataProvider {
         self.bundle = bundle
     }
     
-    func fetchCities(progress: PassthroughSubject<Double, Never>) -> AnyPublisher<[City], Error> {
-        return Future { [weak self] promise in
-            guard let self = self else {
-                promise(.failure(CityDataError.providerDeallocated))
-                return
-            }
-            
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    progress.send(0.2) // Started
-                    
-                    guard let url = self.bundle.url(forResource: self.fileName, withExtension: "json") else {
-                        promise(.failure(CityDataError.fileNotFound))
-                        return
-                    }
-                    
-                    progress.send(0.4) // File found
-                    
-                    let data = try Data(contentsOf: url)
-                    progress.send(0.6) // Data loaded
-                    
-                    let cities = try JSONDecoder().decode([City].self, from: data)
-                    progress.send(0.8) // Decoded
-                    
-                    DispatchQueue.main.async {
-                        progress.send(1.0) // Complete
-                        promise(.success(cities))
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        promise(.failure(error))
-                    }
-                }
-            }
+    func fetchCities(progress: @escaping (Double) -> Void) async throws -> [City] {
+        progress(0.2) // Started
+        
+        guard let url = bundle.url(forResource: fileName, withExtension: "json") else {
+            throw CityDataError.fileNotFound
         }
-        .eraseToAnyPublisher()
+        
+        progress(0.4) // File found
+        
+        let data = try Data(contentsOf: url)
+        progress(0.6) // Data loaded
+        
+        let cities = try JSONDecoder().decode([City].self, from: data)
+        progress(0.8) // Decoded
+        progress(1.0) // Complete
+        
+        return cities
     }
 }
 
@@ -115,28 +89,14 @@ final class MockCityDataProvider: CityDataProvider {
         self.delay = delay
     }
     
-    func fetchCities(progress: PassthroughSubject<Double, Never>) -> AnyPublisher<[City], Error> {
-        return Future { [weak self] promise in
-            guard let self = self else {
-                promise(.failure(CityDataError.providerDeallocated))
-                return
-            }
-            
-            DispatchQueue.global(qos: .userInitiated).async {
-                // Simulate progress
-                for i in 1...10 {
-                    DispatchQueue.main.async {
-                        progress.send(Double(i) / 10.0)
-                    }
-                    Thread.sleep(forTimeInterval: self.delay / 10.0)
-                }
-                
-                DispatchQueue.main.async {
-                    promise(.success(self.cities))
-                }
-            }
+    func fetchCities(progress: @escaping (Double) -> Void) async throws -> [City] {
+        // Simulate progress
+        for i in 1...10 {
+            progress(Double(i) / 10.0)
+            try await Task.sleep(nanoseconds: UInt64(delay * 100_000_000) / 10) // Convert to nanoseconds
         }
-        .eraseToAnyPublisher()
+        
+        return cities
     }
 }
 

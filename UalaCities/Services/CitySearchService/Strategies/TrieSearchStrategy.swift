@@ -50,27 +50,36 @@ class TrieSearchStrategy: CitySearchStrategy {
         }
     }
     
-    func search(query: String) -> [City] {
-        let normalizedQuery = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        if normalizedQuery.isEmpty {
-            currentSearchState = nil
+    func search(query: String) async -> [City] {
+        do {
+            
+            
+            // Add a small delay to prevent blocking the UI
+            try await Task.sleep(nanoseconds: 1_000_000) // 1ms delay
+            
+            let normalizedQuery = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if normalizedQuery.isEmpty {
+                currentSearchState = nil
+                return []
+            }
+            
+            // Check if we can incrementally update from current state
+            if let currentState = currentSearchState {
+                if normalizedQuery.hasPrefix(currentState.query) {
+                    // Adding characters - incrementally update
+                    return incrementalSearchAdd(currentState: currentState, newQuery: normalizedQuery)
+                } else if currentState.query.hasPrefix(normalizedQuery) {
+                    // Removing characters - incrementally update
+                    return incrementalSearchRemove(currentState: currentState, newQuery: normalizedQuery)
+                }
+            }
+            
+            // Full search from root
+            return performFullSearch(query: normalizedQuery)
+        } catch {
             return []
         }
-        
-        // Check if we can incrementally update from current state
-        if let currentState = currentSearchState {
-            if normalizedQuery.hasPrefix(currentState.query) {
-                // Adding characters - incrementally update
-                return incrementalSearchAdd(currentState: currentState, newQuery: normalizedQuery)
-            } else if currentState.query.hasPrefix(normalizedQuery) {
-                // Removing characters - incrementally update
-                return incrementalSearchRemove(currentState: currentState, newQuery: normalizedQuery)
-            }
-        }
-        
-        // Full search from root
-        return performFullSearch(query: normalizedQuery)
     }
     
     func clear() {
