@@ -14,21 +14,14 @@ final class LocalFileCityDataProviderTests: XCTestCase {
     func testLoadCitiesFromLocalFile() async throws {
         // Given
         let provider = LocalFileCityDataProvider(fileName: "cities")
-        var progressValues: [Double] = []
         var loadedCities: [City] = []
         
         // When
-        loadedCities = try await provider.fetchCities { progress in
-            progressValues.append(progress)
-        }
+        loadedCities = try await provider.fetchCities()
         
         // Then
         // Verify cities were loaded
         XCTAssertGreaterThan(loadedCities.count, 0, "Should have loaded at least one city")
-        
-        // Verify progress was reported
-        XCTAssertGreaterThan(progressValues.count, 0, "Should have received progress updates")
-        XCTAssertEqual(progressValues.last, 1.0, "Final progress should be 1.0")
         
         // Verify city structure
         if let firstCity = loadedCities.first {
@@ -45,7 +38,6 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         let service = CityDataService.withLocalFileProvider(fileName: "cities")
         var loadedCities: [City] = []
         var isLoading = false
-        var progress: Double = 0.0
         var error: Error?
         
         // When
@@ -63,9 +55,7 @@ final class LocalFileCityDataProviderTests: XCTestCase {
             isLoading = loading
         }
         
-        let progressObservation = service.$progress.sink { prog in
-            progress = prog
-        }
+
         
         let errorObservation = service.$error.sink { err in
             error = err
@@ -79,12 +69,10 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         // Clean up observations
         citiesObservation.cancel()
         loadingObservation.cancel()
-        progressObservation.cancel()
         errorObservation.cancel()
         
         // Verify service state
         XCTAssertFalse(isLoading, "Service should not be loading after completion")
-        XCTAssertEqual(progress, 1.0, "Progress should be complete")
         XCTAssertNil(error, "Should not have an error: \(error?.localizedDescription ?? "Unknown error")")
         XCTAssertGreaterThan(loadedCities.count, 0, "Should have loaded cities")
         
@@ -139,7 +127,7 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         
         // When
         do {
-            _ = try await provider.fetchCities { _ in }
+            _ = try await provider.fetchCities()
         } catch {
             receivedError = error
         }
@@ -154,27 +142,18 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         }
     }
     
-    func testProgressReporting() async throws {
+    func testLoadPerformance() async throws {
         // Given
         let provider = LocalFileCityDataProvider(fileName: "cities")
-        var progressValues: [Double] = []
         
         // When
-        _ = try await provider.fetchCities { progress in
-            progressValues.append(progress)
-        }
+        let startTime = Date()
+        _ = try await provider.fetchCities()
+        let endTime = Date()
         
         // Then
-        // Verify progress values
-        XCTAssertGreaterThan(progressValues.count, 0, "Should have received progress updates")
-        XCTAssertGreaterThanOrEqual(progressValues.first ?? 0, 0.0, "First progress should be >= 0")
-        XCTAssertLessThanOrEqual(progressValues.last ?? 0, 1.0, "Last progress should be <= 1")
-        XCTAssertEqual(progressValues.last, 1.0, "Final progress should be 1.0")
-        
-        // Verify progress is monotonically increasing
-        for i in 1..<progressValues.count {
-            XCTAssertGreaterThanOrEqual(progressValues[i], progressValues[i-1], "Progress should be monotonically increasing")
-        }
+        let loadTime = endTime.timeIntervalSince(startTime)
+        XCTAssertLessThan(loadTime, 5.0, "Loading should complete within 5 seconds")
     }
     
     func testCityDataStructure() async throws {
@@ -183,7 +162,7 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         var loadedCities: [City] = []
         
         // When
-        loadedCities = try await provider.fetchCities { _ in }
+        loadedCities = try await provider.fetchCities()
         
         // Then
         XCTAssertGreaterThan(loadedCities.count, 0, "Should have loaded cities")
@@ -207,8 +186,8 @@ final class LocalFileCityDataProviderTests: XCTestCase {
         var results2: [City] = []
         
         // When
-        async let load1 = provider.fetchCities { _ in }
-        async let load2 = provider.fetchCities { _ in }
+        async let load1 = provider.fetchCities()
+        async let load2 = provider.fetchCities()
         
         results1 = try await load1
         results2 = try await load2

@@ -16,15 +16,11 @@ class CityDataProviderTests {
         
         let provider = LocalFileCityDataProvider(fileName: "cities")
         
-        var progressValues: [Double] = []
         var loadedCities: [City] = []
         var receivedError: Error?
         
         do {
-            let cities = try await provider.fetchCities { progress in
-                progressValues.append(progress)
-                print("📊 Progress: \(Int(progress * 100))%")
-            }
+            let cities = try await provider.fetchCities()
             
             loadedCities = cities
             
@@ -63,8 +59,6 @@ class CityDataProviderTests {
         
         // Summary
         print("\n📈 Test Summary:")
-        print("   - Progress updates received: \(progressValues.count)")
-        print("   - Final progress: \(progressValues.last ?? 0.0)")
         print("   - Cities loaded: \(loadedCities.count)")
         print("   - Error occurred: \(receivedError != nil)")
         
@@ -85,13 +79,9 @@ class CityDataProviderTests {
         
         let provider = MockCityDataProvider(cities: mockCities, delay: 0.5)
         
-        var progressValues: [Double] = []
         
         do {
-            let cities = try await provider.fetchCities { progress in
-                progressValues.append(progress)
-                print("📊 Progress: \(Int(progress * 100))%")
-            }
+            let cities = try await provider.fetchCities()
             
             print("✅ Successfully loaded \(cities.count) mock cities")
             print("📋 Mock cities:")
@@ -120,9 +110,7 @@ class CityDataProviderTests {
         let provider = NetworkCityDataProvider(url: url)
         
         do {
-            let cities = try await provider.fetchCities { progress in
-                print("📊 Progress: \(Int(progress * 100))%")
-            }
+            let cities = try await provider.fetchCities()
             
             print("✅ Successfully loaded \(cities.count) cities from network")
             print("🎉 Network test PASSED!")

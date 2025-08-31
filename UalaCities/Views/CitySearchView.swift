@@ -10,7 +10,7 @@ import SwiftUI
 protocol CitySearchViewState {
     var cityList: [City] { get }
     var filteredCityList: [City] { get }
-    var progress: Double { get }
+    var isLoading: Bool { get }
     var currentPage: Int { get }
     var hasMorePages: Bool { get }
     var isLoadingMore: Bool { get }
@@ -37,16 +37,15 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
                     viewState.perform(.searchQuery(query))
                 }
             
-            // Progress bar
-            if viewState.progress < 1.0 {
-                ProgressView(value: viewState.progress)
-                    .progressViewStyle(LinearProgressViewStyle())
-                    .padding(.horizontal)
+            // Loading indicator
+            if viewState.isLoading {
+                ProgressView()
+                    .padding()
             }
             
             List {
                 ForEach(viewState.filteredCityList, id: \.id) { city in
-                    Button(city.name) {
+                    Button("\(city.name), \(city.country)") {
                         viewState.perform(.selectCity(city))
                     }
                 }
@@ -79,7 +78,7 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
 
 //MARK: - Preview
 final class CitySearchViewStatePreview: CitySearchViewState, ObservableObject {
-    var progress: Double = 1
+    var isLoading: Bool = false
     var currentPage: Int = 1
     var hasMorePages: Bool = false
     var isLoadingMore: Bool = false

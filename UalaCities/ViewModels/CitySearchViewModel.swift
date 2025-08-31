@@ -15,24 +15,19 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     @Published var cityList: [City] = []
     @Published var filteredCityList: [City] = []
     @Published var isLoading = false
-    @Published var progress: Double = 0.0
     @Published var error: Error?
-    
-    // MARK: - Pagination Properties
-    
     @Published var currentPage: Int = 1
     @Published var hasMorePages: Bool = false
     @Published var isLoadingMore: Bool = false
-    
-    private let itemsPerPage: Int = 20
-    private var allFilteredCities: [City] = []
     
     // MARK: - Private Properties
     
     private let searchService: CitySearchService
     private let cityDataService: CityDataService
+    private let itemsPerPage: Int = 20
     private var cancellables = Set<AnyCancellable>()
     private weak var coordinator: (any Coordinator)?
+    private var currentSearchResults: [City] = []
     
     // MARK: - Initialization
     
@@ -41,10 +36,9 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         self.cityDataService = cityDataService
         self.coordinator = coordinator
         setupBindings()
-        setupInitialData()
+        cityDataService.loadCities()
     }
     
-    /// Convenience initializer that creates a ViewModel with default services
     convenience init(coordinator: (any Coordinator)? = nil) {
         let searchService = CitySearchService(strategy: TrieSearchStrategy())
         let cityDataService = CityDataService.withLocalFileProvider(fileName: "cities")
@@ -56,9 +50,11 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     func perform(_ action: CitySearchViewAction) {
         switch action {
         case .searchQuery(let query):
-            handleSearchQuery(query)
+            searchCities(query)
         case .selectCity(let city):
-            handleCitySelection(city)
+            Task { @MainActor in
+                coordinator?.navigate(to: .cityDetail(city))                
+            }
         case .loadMore:
             loadMoreCities()
         }
@@ -67,14 +63,13 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     // MARK: - Private Methods
     
     private func setupBindings() {
-        // Bind to city data service state
         cityDataService.$cities
             .receive(on: DispatchQueue.main)
             .sink { [weak self] cities in
                 self?.cityList = cities
                 self?.searchService.index(cities: cities)
-                self?.allFilteredCities = cities
-                self?.resetPagination()
+                self?.currentSearchResults = cities
+                self?.searchCities("")
             }
             .store(in: &cancellables)
         
@@ -83,10 +78,7 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             .assign(to: \.isLoading, on: self)
             .store(in: &cancellables)
         
-        cityDataService.$progress
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.progress, on: self)
-            .store(in: &cancellables)
+
         
         cityDataService.$error
             .receive(on: DispatchQueue.main)
@@ -94,78 +86,56 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             .store(in: &cancellables)
     }
     
-    private func setupInitialData() {
-        // Load cities from the data service
-        cityDataService.loadCities()
-    }
-    
-    private func handleSearchQuery(_ query: String) {
+    private func searchCities(_ query: String) {
+        currentPage = 1 // Reset pagination for new search
+        
         if query.isEmpty {
-            allFilteredCities = cityList
-            resetPagination()
+            currentSearchResults = cityList
+            updateFilteredList(with: cityList)
         } else {
-            progress = 0.0
             isLoading = true
+            
             Task {
                 let results = await searchService.search(query: query)
                 
-                Task { @MainActor in
-                    progress = 1.0
+                await MainActor.run {
                     isLoading = false
-                    allFilteredCities = results
-                    resetPagination()
+                    currentSearchResults = results
+                    updateFilteredList(with: results)
                 }
             }
         }
     }
     
-    private func resetPagination() {
-        currentPage = 1
-        updateFilteredList()
-    }
-    
-    private func updateFilteredList() {
+    private func updateFilteredList(with allCities: [City]) {
         let startIndex = (currentPage - 1) * itemsPerPage
-        let endIndex = min(startIndex + itemsPerPage, allFilteredCities.count)
+        let endIndex = min(startIndex + itemsPerPage, allCities.count)
         
-        if startIndex < allFilteredCities.count {
-            let newItems = Array(allFilteredCities[startIndex..<endIndex])
-            
-            if currentPage == 1 {
-                // First page: replace the list
-                filteredCityList = newItems
-            } else {
-                // Subsequent pages: append to existing list
-                filteredCityList.append(contentsOf: newItems)
-            }
+        let newItems = startIndex < allCities.count ? Array(allCities[startIndex..<endIndex]) : []
+        
+        if currentPage == 1 {
+            filteredCityList = newItems
         } else {
-            if currentPage == 1 {
-                filteredCityList = []
-            }
+            filteredCityList.append(contentsOf: newItems)
         }
         
-        hasMorePages = endIndex < allFilteredCities.count
+        hasMorePages = endIndex < allCities.count
     }
     
     private func loadMoreCities() {
         guard hasMorePages && !isLoadingMore else { return }
         
         isLoadingMore = true
+        currentPage += 1
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self else { return }
-            
-            self.currentPage += 1
-            self.updateFilteredList()
-            self.isLoadingMore = false
-        }
-    }
-    
-    private func handleCitySelection(_ city: City) {
-        print("Selected City: \(city.displayName)")
-        // Navigate to city detail using coordinator
-        Task { @MainActor in
-            coordinator?.navigate(to: .cityDetail(city))            
+            self?.isLoadingMore = false
+            self?.updateFilteredList(with: self?.currentSearchResults ?? [])
         }
     }
 }
+
+
+
+
+

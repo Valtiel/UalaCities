@@ -40,17 +40,17 @@ final class CityDataServiceTests: XCTestCase {
         XCTAssertEqual(loadedCities.first?.name, "Test City")
     }
     
-    func testProgressUpdates() async {
+    func testLoadingState() async {
         // Given
         let service = CityDataService.withMockProvider(delay: 0.1)
-        var progressValues: [Double] = []
+        var loadingStates: [Bool] = []
         
         // When
-        let expectation = XCTestExpectation(description: "Progress updates received")
+        let expectation = XCTestExpectation(description: "Loading state changes received")
         
-        let observation = service.$progress.sink { progress in
-            progressValues.append(progress)
-            if progress >= 1.0 {
+        let observation = service.$isLoading.sink { isLoading in
+            loadingStates.append(isLoading)
+            if !isLoading && loadingStates.count > 1 {
                 expectation.fulfill()
             }
         }
@@ -61,8 +61,9 @@ final class CityDataServiceTests: XCTestCase {
         await fulfillment(of: [expectation], timeout: 2.0)
         observation.cancel()
         
-        XCTAssertGreaterThan(progressValues.count, 1)
-        XCTAssertEqual(progressValues.last, 1.0)
+        XCTAssertGreaterThan(loadingStates.count, 1)
+        XCTAssertTrue(loadingStates.first == true) // Should start with loading true
+        XCTAssertTrue(loadingStates.last == false) // Should end with loading false
     }
     
     func testSearchCities() async {

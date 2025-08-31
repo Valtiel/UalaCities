@@ -10,10 +10,9 @@ import Foundation
 /// Protocol defining the interface for city data providers
 protocol CityDataProvider {
     
-    /// Fetches cities with progress reporting
-    /// - Parameter progress: Closure that receives progress updates (0.0 to 1.0)
+    /// Fetches cities
     /// - Returns: Array of cities
-    func fetchCities(progress: @escaping (Double) -> Void) async throws -> [City]
+    func fetchCities() async throws -> [City]
 }
 
 /// Network-based city data provider that fetches from a remote JSON endpoint
@@ -27,9 +26,7 @@ final class NetworkCityDataProvider: CityDataProvider {
         self.session = session
     }
     
-    func fetchCities(progress: @escaping (Double) -> Void) async throws -> [City] {
-        progress(0.1) // Started
-        
+    func fetchCities() async throws -> [City] {
         let (data, response) = try await session.data(from: url)
         
         guard let httpResponse = response as? HTTPURLResponse,
@@ -37,11 +34,7 @@ final class NetworkCityDataProvider: CityDataProvider {
             throw CityDataError.invalidResponse
         }
         
-        progress(0.5) // Data received
-        
         let cities = try JSONDecoder().decode([City].self, from: data)
-        progress(0.9) // Decoded
-        progress(1.0) // Complete
         
         return cities
     }
@@ -58,21 +51,13 @@ final class LocalFileCityDataProvider: CityDataProvider {
         self.bundle = bundle
     }
     
-    func fetchCities(progress: @escaping (Double) -> Void) async throws -> [City] {
-        progress(0.2) // Started
-        
+    func fetchCities() async throws -> [City] {
         guard let url = bundle.url(forResource: fileName, withExtension: "json") else {
             throw CityDataError.fileNotFound
         }
         
-        progress(0.4) // File found
-        
         let data = try Data(contentsOf: url)
-        progress(0.6) // Data loaded
-        
         let cities = try JSONDecoder().decode([City].self, from: data)
-        progress(0.8) // Decoded
-        progress(1.0) // Complete
         
         return cities
     }
@@ -89,12 +74,9 @@ final class MockCityDataProvider: CityDataProvider {
         self.delay = delay
     }
     
-    func fetchCities(progress: @escaping (Double) -> Void) async throws -> [City] {
-        // Simulate progress
-        for i in 1...10 {
-            progress(Double(i) / 10.0)
-            try await Task.sleep(nanoseconds: UInt64(delay * 100_000_000) / 10) // Convert to nanoseconds
-        }
+    func fetchCities() async throws -> [City] {
+        // Simulate delay
+        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) // Convert to nanoseconds
         
         return cities
     }

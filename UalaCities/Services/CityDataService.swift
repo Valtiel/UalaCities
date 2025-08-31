@@ -14,7 +14,6 @@ final class CityDataService: ObservableObject {
     
     @Published private(set) var cities: [City] = []
     @Published private(set) var isLoading = false
-    @Published private(set) var progress: Double = 0.0
     @Published private(set) var error: Error?
     
     // MARK: - Private Properties
@@ -38,26 +37,20 @@ final class CityDataService: ObservableObject {
         loadingTask?.cancel()
         
         isLoading = true
-        progress = 0.0
         error = nil
         
         loadingTask = Task { [weak self] in
             guard let self = self else { return }
             
             do {
-                let cities = try await self.dataProvider.fetchCities { progress in
-                    Task { @MainActor in
-                        self.progress = progress
-                    }
-                }
+                let cities = try await self.dataProvider.fetchCities()
                 
                 // Check if task was cancelled
                 try Task.checkCancellation()
                 
                 await MainActor.run {
-                    self.cities = cities
+                    self.cities = cities.sorted { $0.name < $1.name }
                     self.isLoading = false
-                    self.progress = 1.0
                 }
             } catch {
                 await MainActor.run {
