@@ -26,6 +26,7 @@ class TrieSearchStrategy: CitySearchStrategy {
     private var root = TrieNode()
     private var allCities: [City] = []
     private var currentSearchState: SearchState?
+    private var currentSearchTask: Task<[City], Never>?
     
     var indexedCityCount: Int {
         return allCities.count
@@ -51,38 +52,65 @@ class TrieSearchStrategy: CitySearchStrategy {
     }
     
     func search(query: String) async -> [City] {
-        do {
-            
-            
-            // Add a small delay to prevent blocking the UI
-            try await Task.sleep(nanoseconds: 1_000_000) // 1ms delay
-            
-            let normalizedQuery = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            if normalizedQuery.isEmpty {
-                currentSearchState = nil
+        // Cancel any ongoing search task
+        currentSearchTask?.cancel()
+        
+        // Create a new search task
+        let searchTask = Task<[City], Never> {
+            do {
+                // Add a small delay to prevent blocking the UI
+                try await Task.sleep(nanoseconds: 1_000_000) // 1ms delay
+                
+                // Check if task was cancelled during the delay
+                try Task.checkCancellation()
+                
+                let normalizedQuery = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if normalizedQuery.isEmpty {
+                    currentSearchState = nil
+                    return []
+                }
+                
+                // Check if we can incrementally update from current state
+                if let currentState = currentSearchState {
+                    if normalizedQuery.hasPrefix(currentState.query) {
+                        // Adding characters - incrementally update
+                        return incrementalSearchAdd(currentState: currentState, newQuery: normalizedQuery)
+                    } else if currentState.query.hasPrefix(normalizedQuery) {
+                        // Removing characters - incrementally update
+                        return incrementalSearchRemove(currentState: currentState, newQuery: normalizedQuery)
+                    }
+                }
+                
+                // Full search from root
+                return performFullSearch(query: normalizedQuery)
+            } catch is CancellationError {
+                // Task was cancelled, return empty results
+                return []
+            } catch {
                 return []
             }
-            
-            // Check if we can incrementally update from current state
-            if let currentState = currentSearchState {
-                if normalizedQuery.hasPrefix(currentState.query) {
-                    // Adding characters - incrementally update
-                    return incrementalSearchAdd(currentState: currentState, newQuery: normalizedQuery)
-                } else if currentState.query.hasPrefix(normalizedQuery) {
-                    // Removing characters - incrementally update
-                    return incrementalSearchRemove(currentState: currentState, newQuery: normalizedQuery)
-                }
-            }
-            
-            // Full search from root
-            return performFullSearch(query: normalizedQuery)
-        } catch {
-            return []
         }
+        
+        // Store the current task
+        currentSearchTask = searchTask
+        
+        // Wait for the task to complete and return results
+        let results = await searchTask.value
+        
+        // Only update the current task if this is still the most recent search
+        if currentSearchTask == searchTask {
+            currentSearchTask = nil
+        }
+        
+        return results
     }
     
     func clear() {
+        // Cancel any ongoing search
+        currentSearchTask?.cancel()
+        currentSearchTask = nil
+        
         root = TrieNode()
         allCities.removeAll()
         currentSearchState = nil
@@ -91,6 +119,11 @@ class TrieSearchStrategy: CitySearchStrategy {
     // MARK: - Incremental Search Methods
     
     private func incrementalSearchAdd(currentState: SearchState, newQuery: String) -> [City] {
+        // Check for cancellation
+        if Task.isCancelled {
+            return []
+        }
+        
         var currentNode = currentState.currentNode
         let additionalChars = String(newQuery.dropFirst(currentState.query.count))
         
@@ -107,6 +140,11 @@ class TrieSearchStrategy: CitySearchStrategy {
         // Collect results from current node and descendants
         var results: [City] = []
         collectCities(from: currentNode, results: &results)
+        
+        // Check for cancellation before sorting
+        if Task.isCancelled {
+            return []
+        }
         
         // Remove duplicates and sort
         let uniqueResults = Array(Set(results)).sorted { city1, city2 in
@@ -130,6 +168,11 @@ class TrieSearchStrategy: CitySearchStrategy {
     }
     
     private func incrementalSearchRemove(currentState: SearchState, newQuery: String) -> [City] {
+        // Check for cancellation
+        if Task.isCancelled {
+            return []
+        }
+        
         // Navigate back to the node for the shorter query
         var currentNode = root
         
@@ -145,6 +188,11 @@ class TrieSearchStrategy: CitySearchStrategy {
         // Collect results from current node and descendants
         var results: [City] = []
         collectCities(from: currentNode, results: &results)
+        
+        // Check for cancellation before sorting
+        if Task.isCancelled {
+            return []
+        }
         
         // Remove duplicates and sort
         let uniqueResults = Array(Set(results)).sorted { city1, city2 in
@@ -168,6 +216,11 @@ class TrieSearchStrategy: CitySearchStrategy {
     }
     
     private func performFullSearch(query: String) -> [City] {
+        // Check for cancellation
+        if Task.isCancelled {
+            return []
+        }
+        
         var currentNode = root
         
         // Navigate to the node for the query
@@ -182,6 +235,11 @@ class TrieSearchStrategy: CitySearchStrategy {
         // Collect results from current node and descendants
         var results: [City] = []
         collectCities(from: currentNode, results: &results)
+        
+        // Check for cancellation before sorting
+        if Task.isCancelled {
+            return []
+        }
         
         // Remove duplicates and sort
         let uniqueResults = Array(Set(results)).sorted { city1, city2 in
@@ -232,6 +290,11 @@ class TrieSearchStrategy: CitySearchStrategy {
     }
     
     private func collectCities(from node: TrieNode, results: inout [City]) {
+        // Check for cancellation periodically during collection
+        if Task.isCancelled {
+            return
+        }
+        
         results.append(contentsOf: node.cities)
         
         for child in node.children.values {
