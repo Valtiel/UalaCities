@@ -1,5 +1,5 @@
 //
-//  CitySearchViewModel.swift
+//  CitySearchDetailViewModel.swift
 //  UalaCities
 //
 //  Created by César Rosales on 30/08/2025.
@@ -8,10 +8,11 @@
 import Foundation
 import Combine
 
-final class CitySearchViewModel: ObservableObject, CitySearchViewState {
+final class CitySearchDetailViewModel: ObservableObject, CitySearchDetailViewState {
     
     // MARK: - Published Properties
     
+    // Search-related properties
     @Published var cityList: [City] = []
     @Published var filteredCityList: [City] = []
     @Published var isLoading = false
@@ -20,6 +21,10 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     @Published var hasMorePages: Bool = false
     @Published var isLoadingMore: Bool = false
     @Published var favoritesCount: Int = 0
+    
+    // Detail-related properties
+    @Published var selectedCity: City?
+    @Published var isDetailFavorite: Bool = false
     
     // MARK: - Private Properties
     
@@ -54,11 +59,12 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     
     // MARK: - Public Methods
     
-    func perform(_ action: CitySearchViewAction) {
+    func perform(_ action: CitySearchDetailViewAction) {
         switch action {
         case .searchQuery(let query):
             searchCities(query)
         case .selectCity(let city):
+            selectCity(city)
             // Save selected city to coordinator state
             if let appCoordinator = coordinator as? AppCoordinator {
                 Task { @MainActor in
@@ -69,6 +75,8 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             loadMoreCities()
         case .toggleFavorite(let city):
             toggleFavorite(city)
+        case .toggleDetailFavorite:
+            toggleDetailFavorite()
         case .showFavorites:
             showFavorites()
         }
@@ -80,6 +88,13 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         if cityDataService.isDataLoaded && filteredCityList.isEmpty {
             currentSearchResults = cityDataService.cities
             searchCities("")
+        }
+        Task { @MainActor in
+            // Restore selected city from coordinator state if available
+            if let appCoordinator = coordinator as? AppCoordinator,
+               let coordinatorSelectedCity = appCoordinator.selectedCity {
+                selectedCity = coordinatorSelectedCity
+            }
         }
     }
     
@@ -120,8 +135,6 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             .assign(to: \.isLoading, on: self)
             .store(in: &cancellables)
         
-
-        
         cityDataService.$error
             .receive(on: DispatchQueue.main)
             .assign(to: \.error, on: self)
@@ -131,6 +144,16 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             .receive(on: DispatchQueue.main)
             .map { $0.count }
             .assign(to: \.favoritesCount, on: self)
+            .store(in: &cancellables)
+        
+        // Monitor favorite status for selected city
+        favoritesService.$favoriteCities
+            .receive(on: DispatchQueue.main)
+            .map { [weak self] favoriteCities in
+                guard let self = self, let selectedCity = self.selectedCity else { return false }
+                return favoriteCities.contains { $0.id == selectedCity.id }
+            }
+            .assign(to: \.isDetailFavorite, on: self)
             .store(in: &cancellables)
     }
     
@@ -153,6 +176,10 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
                 }
             }
         }
+    }
+    
+    private func selectCity(_ city: City) {
+        selectedCity = city
     }
     
     private func updateFilteredList(with allCities: [City]) {
@@ -186,6 +213,11 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         favoritesService.toggleFavorite(city)
     }
     
+    private func toggleDetailFavorite() {
+        guard let selectedCity = selectedCity else { return }
+        favoritesService.toggleFavorite(selectedCity)
+    }
+    
     private func showFavorites() {
         Task { @MainActor in
             coordinator?.presentSheet(.favorites)
@@ -196,8 +228,3 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         favoritesService.isFavorite(city)
     }
 }
-
-
-
-
-

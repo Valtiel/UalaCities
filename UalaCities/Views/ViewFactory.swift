@@ -33,6 +33,9 @@ final class ViewFactory {
         case .cityDetail(let city):
             let viewModel = viewModelFactory.makeCityDetailViewModel(city: city, coordinator: coordinator)
             CityDetailView(viewState: viewModel)
+        case .citySearchDetail:
+            let viewModel = viewModelFactory.makeCitySearchDetailViewModel(coordinator: coordinator)
+            CitySearchDetailView(viewState: viewModel)
         }
     }
     

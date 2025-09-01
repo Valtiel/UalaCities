@@ -49,4 +49,14 @@ final class ViewModelFactory {
             coordinator: coordinator
         )
     }
+    
+    /// Creates a CitySearchDetailViewModel with the managed services
+    func makeCitySearchDetailViewModel(coordinator: (any Coordinator)? = nil) -> CitySearchDetailViewModel {
+        return CitySearchDetailViewModel(
+            searchService: servicesManager.searchService,
+            cityDataService: servicesManager.cityDataService,
+            favoritesService: servicesManager.favoritesService,
+            coordinator: coordinator
+        )
+    }
 }

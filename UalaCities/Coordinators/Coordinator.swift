@@ -13,6 +13,7 @@ import Foundation
 enum NavigationDestination: Hashable {
     case citySearch
     case cityDetail(City)
+    case citySearchDetail
 }
 
 /// Sheet presentation destinations

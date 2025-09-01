@@ -12,6 +12,7 @@ struct MainView: View {
     @StateObject private var servicesManager: ServicesManager
     private let viewModelFactory: ViewModelFactory
     private let viewFactory: ViewFactory
+    @State private var orientation = UIDeviceOrientation.portrait
     
     init() {
         // Create services manager first
@@ -29,44 +30,48 @@ struct MainView: View {
     }
     
     var body: some View {
-        NavigationStack(path: $coordinator.navigationPath) {
             mainContent
-                .navigationDestination(for: NavigationDestination.self) { destination in
-                    viewFactory.makeView(for: destination, coordinator: coordinator)
-                }
-        }
         .sheet(item: $coordinator.presentedSheet) { destination in
             sheetContent(for: destination)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            orientation = UIDevice.current.orientation
         }
     }
     
     // MARK: - Private Helper Views
     
     private var mainContent: some View {
-        viewFactory.makeView(for: .citySearch, coordinator: coordinator)
-    }
-    
-    private var headerSection: some View {
-        VStack(spacing: 8) {
-            Text("UalaCities")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("Welcome to the city search app")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-    }
-    
-    private var actionButtonsSection: some View {
-        VStack(spacing: 16) {
-            Button("Search Cities") {
-                coordinator.navigate(to: .citySearch)
+        Group {
+            if isPortrait {
+                // Show CitySearchView in portrait mode
+                NavigationStack(path: $coordinator.navigationPath) {
+                    let viewModel = viewModelFactory.makeCitySearchViewModel(coordinator: coordinator)
+                    CitySearchView(viewState: viewModel)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .leading),
+                            removal: .move(edge: .trailing)
+                        ))
+                        .navigationDestination(for: NavigationDestination.self) { destination in
+                            viewFactory.makeView(for: destination, coordinator: coordinator)
+                        }
+                }
+            } else {
+                // Show CitySearchDetailView in landscape mode
+                let viewModel = viewModelFactory.makeCitySearchDetailViewModel(coordinator: coordinator)
+                CitySearchDetailView(viewState: viewModel)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing),
+                        removal: .move(edge: .leading)
+                    ))
+                
             }
-            .buttonStyle(.borderedProminent)
-            .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, 40)
+        .animation(.easeInOut(duration: 0.3), value: isPortrait)
+    }
+    
+    private var isPortrait: Bool {
+        orientation == .portrait || orientation == .portraitUpsideDown
     }
     
     private func sheetContent(for destination: SheetDestination) -> some View {
@@ -85,6 +90,14 @@ struct MainView: View {
     }
 }
 
-#Preview {
+#Preview("Portrait") {
     MainView()
+        .previewDevice(PreviewDevice(rawValue: "iPhone 15"))
+        .previewInterfaceOrientation(.portrait)
+}
+
+#Preview("Landscape") {
+    MainView()
+        .previewDevice(PreviewDevice(rawValue: "iPhone 15"))
+        .previewInterfaceOrientation(.landscapeLeft)
 }

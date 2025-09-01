@@ -15,6 +15,7 @@ final class AppCoordinator: Coordinator {
     
     @Published var navigationPath = NavigationPath()
     @Published var presentedSheet: SheetDestination?
+    @Published var selectedCity: City?
     
     // MARK: - Navigation Methods
     
@@ -40,6 +41,20 @@ final class AppCoordinator: Coordinator {
     
     /// Pop the last view
     func pop() {
+        guard navigationPath.count > 0 else {
+            return
+        }
         navigationPath.removeLast()
+    }
+    
+    /// Set the selected city (used for state persistence across orientation changes)
+    func setSelectedCity(_ city: City?) {
+        if selectedCity != nil {
+            pop()
+        }
+        selectedCity = city
+        if let city {
+            navigationPath.append(NavigationDestination.cityDetail(city))
+        }
     }
 }
