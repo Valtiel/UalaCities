@@ -35,72 +35,8 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
     
     var body: some View {
         VStack {
-            HStack {
-                TextField("Search city...", text: $query)
-                    .textFieldStyle(.roundedBorder)
-                
-                Button(action: {
-                    viewState.perform(.showFavorites)
-                }) {
-                    HStack {
-                        Image(systemName: "heart.fill")
-                            .foregroundColor(.red)
-                        Text("\(viewState.favoritesCount)")
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-                }
-            }
-            .padding()
-            .onSubmit {
-                viewState.perform(.searchQuery(query))
-            }
-            
-            // Loading indicator
-            if viewState.isLoading {
-                ProgressView()
-                    .padding()
-            }
-            
-            List {
-                ForEach(viewState.filteredCityList, id: \.id) { city in
-                    HStack {
-                        Button("\(city.name), \(city.country)") {
-                            viewState.perform(.selectCity(city))
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        Button(action: {
-                            viewState.perform(.toggleFavorite(city))
-                        }) {
-                            Image(systemName: viewState.isFavorite(city) ? "heart.fill" : "heart")
-                                .foregroundColor(viewState.isFavorite(city) ? .red : .gray)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                }
-                
-                // Load more button
-                if viewState.hasMorePages {
-                    HStack {
-                        Spacer()
-                        if viewState.isLoadingMore {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Button("Load More") {
-                                viewState.perform(.loadMore)
-                            }
-                            .foregroundColor(.blue)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                }
-            }
+            searchHeader
+            contentSection
         }
         .navigationTitle("City Search")
         .onChange(of: query) { oldQuery, newQuery in
@@ -108,6 +44,121 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
         }
         .onAppear {
             viewState.onViewAppear()
+        }
+    }
+    
+    // MARK: - Private Helper Views
+    
+    private var searchHeader: some View {
+        HStack {
+            TextField("Search city...", text: $query)
+                .textFieldStyle(.roundedBorder)
+            
+            favoritesButton
+        }
+        .padding()
+        .onSubmit {
+            viewState.perform(.searchQuery(query))
+        }
+    }
+    
+    private var favoritesButton: some View {
+        Button(action: {
+            viewState.perform(.showFavorites)
+        }) {
+            HStack {
+                Image(systemName: "heart.fill")
+                    .foregroundColor(.red)
+                Text("\(viewState.favoritesCount)")
+                    .font(.caption)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+        }
+    }
+    
+    private var contentSection: some View {
+        Group {
+            if viewState.isLoading {
+                loadingView
+                Spacer()
+            } else {
+                cityListView
+            }
+        }
+    }
+    
+    private var loadingView: some View {
+        ProgressView()
+            .padding()
+    }
+    
+    private var cityListView: some View {
+        List {
+            ForEach(viewState.filteredCityList, id: \.id) { city in
+                CityRowView(
+                    city: city,
+                    isFavorite: viewState.isFavorite(city),
+                    onSelect: { viewState.perform(.selectCity(city)) },
+                    onToggleFavorite: { viewState.perform(.toggleFavorite(city)) }
+                )
+            }
+            
+            if viewState.hasMorePages {
+                loadMoreSection
+            }
+        }
+    }
+    
+    private var loadMoreSection: some View {
+        HStack {
+            Spacer()
+            if viewState.isLoadingMore {
+                ProgressView()
+                    .scaleEffect(0.8)
+            } else {
+                Button("Load More") {
+                    viewState.perform(.loadMore)
+                }
+                .foregroundColor(.blue)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+// MARK: - City Row View
+
+private struct CityRowView: View {
+    let city: City
+    let isFavorite: Bool
+    let onSelect: () -> Void
+    let onToggleFavorite: () -> Void
+    
+    var body: some View {
+        HStack {
+            Button(action: onSelect) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(city.name), \(city.country)")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                    
+                    Text("Lat: \(String(format: "%.4f", city.coord.lat)), Lon: \(String(format: "%.4f", city.coord.lon))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .buttonStyle(PlainButtonStyle())
+            
+            Button(action: onToggleFavorite) {
+                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                    .foregroundColor(isFavorite ? .red : .gray)
+            }
+            .buttonStyle(PlainButtonStyle())
         }
     }
 }
@@ -138,7 +189,11 @@ final class CitySearchViewStatePreview: CitySearchViewState, ObservableObject {
     func perform(_ action: CitySearchViewAction) {
         switch action {
         case .searchQuery(let query):
-            filteredCityList = cityList.filter { $0.name.lowercased().contains(query.lowercased())
+            if query.isEmpty {
+                filteredCityList = cityList
+            } else {
+                filteredCityList = cityList.filter { $0.name.lowercased().contains(query.lowercased())
+                }
             }
         case .selectCity(let city):
             print("Selected City: \(city.name)")
@@ -158,10 +213,10 @@ final class CitySearchViewStatePreview: CitySearchViewState, ObservableObject {
     
     func onViewAppear() {
         // Mock implementation for preview
+        filteredCityList = cityList
     }
 }
 
 #Preview {
-    let servicesManager = ServicesManager()
-    CitySearchView(viewState: servicesManager.makeCitySearchViewModel())
+    CitySearchView(viewState: CitySearchViewStatePreview())
 }

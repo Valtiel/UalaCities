@@ -27,107 +27,118 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                
-                // Map Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Location on Map")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                    
-                    CityMapView(coordinate: viewState.city.coord, cityName: viewState.city.name)
-                        .frame(height: 200)
-                        .cornerRadius(12)
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-                
-                // City Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(viewState.city.name)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Text(viewState.city.country)
-                        .font(.title2)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, 10)
-                
-                // Action Buttons
-                HStack(spacing: 12) {
-                    Button(action: {
-                        viewState.perform(.toggleFavorite)
-                    }) {
-                        HStack {
-                            Image(systemName: viewState.isFavorite ? "heart.fill" : "heart")
-                                .foregroundColor(viewState.isFavorite ? .red : .gray)
-                            Text(viewState.isFavorite ? "Favorited" : "Add to Favorites")
-                                .font(.body)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(viewState.isFavorite ? Color.red.opacity(0.1) : Color.gray.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                .padding(.bottom, 10)
-                
-                // City Information
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("City Information")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        InfoRow(title: "Full Name", value: viewState.city.displayName)
-                        InfoRow(title: "Country", value: viewState.city.country)
-                        InfoRow(title: "City ID", value: "\(viewState.city.id)")
-                        HStack(spacing: 20) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Latitude")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text(String(format: "%.4f", viewState.city.coord.lat))
-                                    .font(.body)
-                                    .fontWeight(.medium)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Longitude")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text(String(format: "%.4f", viewState.city.coord.lon))
-                                    .font(.body)
-                                    .fontWeight(.medium)
-                            }
-                        }
-                    }
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-                
+                mapSection
+                cityHeaderSection
+                actionButtonsSection
+                cityInformationSection
                 Spacer(minLength: 20)
             }
             .padding()
         }
-        .overlay(
-            Group {
-                if viewState.isLoading {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .background(Color(.systemBackground).opacity(0.8))
-                }
-            }
-        )
+        .overlay(loadingOverlay)
         .alert("Error", isPresented: .constant(viewState.error != nil)) {
             Button("OK") { }
         } message: {
             if let error = viewState.error {
                 Text(error.localizedDescription)
+            }
+        }
+    }
+    
+    // MARK: - Private Helper Views
+    
+    private var mapSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Location on Map")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            CityMapView(coordinate: viewState.city.coord, cityName: viewState.city.name)
+                .frame(height: 200)
+                .cornerRadius(12)
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private var cityHeaderSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(viewState.city.name)
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            Text(viewState.city.country)
+                .font(.title2)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, 10)
+    }
+    
+    private var actionButtonsSection: some View {
+        HStack(spacing: 12) {
+            favoriteButton
+        }
+        .padding(.bottom, 10)
+    }
+    
+    private var favoriteButton: some View {
+        Button(action: {
+            viewState.perform(.toggleFavorite)
+        }) {
+            HStack {
+                Image(systemName: viewState.isFavorite ? "heart.fill" : "heart")
+                    .foregroundColor(viewState.isFavorite ? .red : .gray)
+                Text(viewState.isFavorite ? "Favorited" : "Add to Favorites")
+                    .font(.body)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(viewState.isFavorite ? Color.red.opacity(0.1) : Color.gray.opacity(0.1))
+            .cornerRadius(8)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var cityInformationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("City Information")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                InfoRow(title: "Full Name", value: viewState.city.displayName)
+                InfoRow(title: "Country", value: viewState.city.country)
+                InfoRow(title: "City ID", value: "\(viewState.city.id)")
+                coordinatesSection
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private var coordinatesSection: some View {
+        HStack(spacing: 20) {
+            CoordinateView(
+                title: "Latitude",
+                value: String(format: "%.4f", viewState.city.coord.lat)
+            )
+            
+            CoordinateView(
+                title: "Longitude",
+                value: String(format: "%.4f", viewState.city.coord.lon)
+            )
+        }
+    }
+    
+    private var loadingOverlay: some View {
+        Group {
+            if viewState.isLoading {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .background(Color(.systemBackground).opacity(0.8))
             }
         }
     }
@@ -145,6 +156,22 @@ private struct InfoRow: View {
                 .font(.body)
                 .foregroundColor(.secondary)
             Spacer()
+            Text(value)
+                .font(.body)
+                .fontWeight(.medium)
+        }
+    }
+}
+
+private struct CoordinateView: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
             Text(value)
                 .font(.body)
                 .fontWeight(.medium)

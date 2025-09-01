@@ -26,49 +26,71 @@ struct FavoritesView<ViewState: ObservableObject & FavoritesViewState>: View {
         NavigationView {
             List {
                 if viewState.favoriteCities.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "heart")
-                            .font(.system(size: 48))
-                            .foregroundColor(.gray)
-                        
-                        Text("No Favorite Cities")
-                            .font(.title2)
-                            .fontWeight(.medium)
-                        
-                        Text("Add cities to your favorites by tapping the heart icon next to any city name.")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .listRowBackground(Color.clear)
+                    emptyStateView
                 } else {
-                    ForEach(viewState.favoriteCities, id: \.id) { city in
-                        HStack {
-                            Button("\(city.name), \(city.country)") {
-                                viewState.perform(.selectCity(city))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            Button(action: {
-                                viewState.perform(.toggleFavorite(city))
-                            }) {
-                                Image(systemName: "heart.fill")
-                                    .foregroundColor(.red)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                    }
+                    favoriteCitiesList
                 }
             }
             .navigationTitle("Favorites")
             .navigationBarTitleDisplayMode(.large)
         }
     }
+    
+    // MARK: - Private Helper Views
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "heart")
+                .font(.system(size: 48))
+                .foregroundColor(.gray)
+            
+            Text("No Favorite Cities")
+                .font(.title2)
+                .fontWeight(.medium)
+            
+            Text("Add cities to your favorites by tapping the heart icon next to any city name.")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .listRowBackground(Color.clear)
+    }
+    
+    private var favoriteCitiesList: some View {
+        ForEach(viewState.favoriteCities, id: \.id) { city in
+            FavoriteCityRowView(
+                city: city,
+                onSelect: { viewState.perform(.selectCity(city)) },
+                onToggleFavorite: { viewState.perform(.toggleFavorite(city)) }
+            )
+        }
+    }
 }
 
+// MARK: - Favorite City Row View
 
+private struct FavoriteCityRowView: View {
+    let city: City
+    let onSelect: () -> Void
+    let onToggleFavorite: () -> Void
+    
+    var body: some View {
+        HStack {
+            Button("\(city.name), \(city.country)") {
+                onSelect()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Button(action: onToggleFavorite) {
+                Image(systemName: "heart.fill")
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+    }
+}
 
 // MARK: - Preview
 
@@ -91,5 +113,5 @@ final class FavoritesViewStatePreview: FavoritesViewState, ObservableObject {
 }
 
 #Preview {
-    FavoritesView(viewState: FavoritesViewModel(favoritesService: FavoritesService()))
+    FavoritesView(viewState: FavoritesViewStatePreview())
 }

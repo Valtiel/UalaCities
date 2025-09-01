@@ -15,15 +15,12 @@ final class MockAppCoordinator: Coordinator {
     
     @Published var navigationPath = NavigationPath()
     @Published var presentedSheet: SheetDestination?
-    @Published var presentedFullScreenCover: FullScreenDestination?
     
     // MARK: - Test Properties
     
     var navigatedDestinations: [NavigationDestination] = []
     var presentedSheets: [SheetDestination] = []
-    var presentedFullScreens: [FullScreenDestination] = []
     var dismissedSheets = 0
-    var dismissedFullScreens = 0
     var poppedCount = 0
     var poppedToRootCount = 0
     
@@ -39,19 +36,9 @@ final class MockAppCoordinator: Coordinator {
         presentedSheet = destination
     }
     
-    func presentFullScreen(_ destination: FullScreenDestination) {
-        presentedFullScreens.append(destination)
-        presentedFullScreenCover = destination
-    }
-    
     func dismissSheet() {
         dismissedSheets += 1
         presentedSheet = nil
-    }
-    
-    func dismissFullScreen() {
-        dismissedFullScreens += 1
-        presentedFullScreenCover = nil
     }
     
     func popToRoot() {
@@ -81,28 +68,16 @@ final class MockAppCoordinator: Coordinator {
         .navigationTitle("Mock \(city.name)")
     }
     
-    func makeSettingsView() -> some View {
-        VStack {
-            Text("Mock Settings")
-                .font(.title)
-            Text("Mock settings view for testing")
-        }
-        .navigationTitle("Mock Settings")
-    }
-    
     // MARK: - Test Helper Methods
     
     /// Reset all test counters
     func reset() {
         navigatedDestinations.removeAll()
         presentedSheets.removeAll()
-        presentedFullScreens.removeAll()
         dismissedSheets = 0
-        dismissedFullScreens = 0
         poppedCount = 0
         poppedToRootCount = 0
         navigationPath = NavigationPath()
         presentedSheet = nil
-        presentedFullScreenCover = nil
     }
 }

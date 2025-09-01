@@ -13,35 +13,16 @@ import Foundation
 enum NavigationDestination: Hashable {
     case citySearch
     case cityDetail(City)
-    case settings
 }
 
 /// Sheet presentation destinations
 enum SheetDestination: Identifiable {
-    case citySearch
-    case cityDetail(City)
     case favorites
     
     var id: String {
         switch self {
-        case .citySearch:
-            return "citySearch"
-        case .cityDetail(let city):
-            return "cityDetail-\(city.id)"
         case .favorites:
             return "favorites"
-        }
-    }
-}
-
-/// Full screen presentation destinations
-enum FullScreenDestination: Identifiable {
-    case citySearch
-    
-    var id: String {
-        switch self {
-        case .citySearch:
-            return "citySearch"
         }
     }
 }
@@ -58,14 +39,8 @@ protocol Coordinator: ObservableObject {
     /// Present a sheet
     func presentSheet(_ destination: SheetDestination)
     
-    /// Present a full screen cover
-    func presentFullScreen(_ destination: FullScreenDestination)
-    
     /// Dismiss the current sheet
     func dismissSheet()
-    
-    /// Dismiss the current full screen cover
-    func dismissFullScreen()
     
     /// Pop to root view
     func popToRoot()

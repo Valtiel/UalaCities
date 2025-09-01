@@ -38,33 +38,4 @@ final class ServicesManager: ObservableObject {
         // Preload data for better performance
         self.cityDataService.loadCities()
     }
-    
-    // MARK: - Factory Methods
-    
-    /// Creates a CitySearchViewModel with the managed services
-    func makeCitySearchViewModel(coordinator: (any Coordinator)? = nil) -> CitySearchViewModel {
-        return CitySearchViewModel(
-            searchService: searchService,
-            cityDataService: cityDataService,
-            favoritesService: favoritesService,
-            coordinator: coordinator
-        )
-    }
-    
-    /// Creates a FavoritesViewModel with the managed services
-    func makeFavoritesViewModel(coordinator: (any Coordinator)? = nil) -> FavoritesViewModel {
-        return FavoritesViewModel(
-            favoritesService: favoritesService,
-            coordinator: coordinator
-        )
-    }
-    
-    /// Creates a CityDetailViewModel with the managed services
-    func makeCityDetailViewModel(city: City, coordinator: (any Coordinator)? = nil) -> CityDetailViewModel {
-        return CityDetailViewModel(
-            city: city,
-            favoritesService: favoritesService,
-            coordinator: coordinator
-        )
-    }
 }

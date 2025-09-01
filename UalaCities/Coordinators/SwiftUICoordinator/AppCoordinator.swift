@@ -15,7 +15,6 @@ final class AppCoordinator: Coordinator {
     
     @Published var navigationPath = NavigationPath()
     @Published var presentedSheet: SheetDestination?
-    @Published var presentedFullScreenCover: FullScreenDestination?
     
     // MARK: - Navigation Methods
     
@@ -29,19 +28,9 @@ final class AppCoordinator: Coordinator {
         presentedSheet = destination
     }
     
-    /// Present a full screen cover
-    func presentFullScreen(_ destination: FullScreenDestination) {
-        presentedFullScreenCover = destination
-    }
-    
     /// Dismiss the current sheet
     func dismissSheet() {
         presentedSheet = nil
-    }
-    
-    /// Dismiss the current full screen cover
-    func dismissFullScreen() {
-        presentedFullScreenCover = nil
     }
     
     /// Pop to root view
