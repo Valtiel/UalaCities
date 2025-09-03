@@ -45,7 +45,7 @@ struct TrieSearchStrategyTests {
         strategy.clear()
         
         #expect(strategy.indexedCityCount == 0)
-        #expect(strategy.search(query: "Buenos").isEmpty)
+        await #expect(strategy.search(query: "Buenos").isEmpty)
     }
     
     // MARK: - Indexing Tests
@@ -67,8 +67,8 @@ struct TrieSearchStrategyTests {
         strategy.index(cities: newCities)
         
         #expect(strategy.indexedCityCount == 1)
-        #expect(strategy.search(query: "Buenos").isEmpty)
-        #expect(strategy.search(query: "Moscow").count == 1)
+        await #expect(strategy.search(query: "Buenos").isEmpty)
+        await #expect(strategy.search(query: "Moscow").count == 1)
     }
     
     // MARK: - Search Tests
@@ -77,7 +77,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "")
+        let results = await strategy.search(query: "")
         
         #expect(results.isEmpty)
     }
@@ -86,7 +86,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "   ")
+        let results = await strategy.search(query: "   ")
         
         #expect(results.isEmpty)
     }
@@ -95,7 +95,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Buenos")
+        let results = await strategy.search(query: "Buenos")
         
         #expect(results.count == 1)
         #expect(results.first?.name == "Buenos Aires")
@@ -106,32 +106,32 @@ struct TrieSearchStrategyTests {
         strategy.index(cities: testCities)
         
         // Start with "B"
-        let results1 = strategy.search(query: "B")
+        let results1 = await strategy.search(query: "B")
         #expect(results1.count > 0)
         #expect(results1.allSatisfy { $0.name.hasPrefix("B") || $0.country.hasPrefix("B") })
         
         // Add "u" -> "Bu"
-        let results2 = strategy.search(query: "Bu")
+        let results2 = await strategy.search(query: "Bu")
         #expect(results2.count > 0)
         #expect(results2.allSatisfy { $0.name.hasPrefix("Bu") || $0.country.hasPrefix("Bu") })
         
         // Add "e" -> "Bue"
-        let results3 = strategy.search(query: "Bue")
+        let results3 = await strategy.search(query: "Bue")
         #expect(results3.count > 0)
         #expect(results3.allSatisfy { $0.name.hasPrefix("Bue") || $0.country.hasPrefix("Bue") })
         
         // Add "n" -> "Buen"
-        let results4 = strategy.search(query: "Buen")
+        let results4 = await strategy.search(query: "Buen")
         #expect(results4.count > 0)
         #expect(results4.allSatisfy { $0.name.hasPrefix("Buen") || $0.country.hasPrefix("Buen") })
         
         // Add "o" -> "Bueno"
-        let results5 = strategy.search(query: "Bueno")
+        let results5 = await strategy.search(query: "Bueno")
         #expect(results5.count > 0)
         #expect(results5.allSatisfy { $0.name.hasPrefix("Bueno") || $0.country.hasPrefix("Bueno") })
         
         // Add "s" -> "Buenos"
-        let results6 = strategy.search(query: "Buenos")
+        let results6 = await strategy.search(query: "Buenos")
         #expect(results6.count == 1)
         #expect(results6.first?.name == "Buenos Aires")
     }
@@ -141,32 +141,32 @@ struct TrieSearchStrategyTests {
         strategy.index(cities: testCities)
         
         // Start with "Buenos"
-        let results1 = strategy.search(query: "Buenos")
+        let results1 = await strategy.search(query: "Buenos")
         #expect(results1.count == 1)
         #expect(results1.first?.name == "Buenos Aires")
         
         // Remove "s" -> "Bueno"
-        let results2 = strategy.search(query: "Bueno")
+        let results2 = await strategy.search(query: "Bueno")
         #expect(results2.count > 0)
         #expect(results2.allSatisfy { $0.name.hasPrefix("Bueno") || $0.country.hasPrefix("Bueno") })
         
         // Remove "o" -> "Buen"
-        let results3 = strategy.search(query: "Buen")
+        let results3 = await strategy.search(query: "Buen")
         #expect(results3.count > 0)
         #expect(results3.allSatisfy { $0.name.hasPrefix("Buen") || $0.country.hasPrefix("Buen") })
         
         // Remove "n" -> "Bue"
-        let results4 = strategy.search(query: "Bue")
+        let results4 = await strategy.search(query: "Bue")
         #expect(results4.count > 0)
         #expect(results4.allSatisfy { $0.name.hasPrefix("Bue") || $0.country.hasPrefix("Bue") })
         
         // Remove "e" -> "Bu"
-        let results5 = strategy.search(query: "Bu")
+        let results5 = await strategy.search(query: "Bu")
         #expect(results5.count > 0)
         #expect(results5.allSatisfy { $0.name.hasPrefix("Bu") || $0.country.hasPrefix("Bu") })
         
         // Remove "u" -> "B"
-        let results6 = strategy.search(query: "B")
+        let results6 = await strategy.search(query: "B")
         #expect(results6.count > 0)
         #expect(results6.allSatisfy { $0.name.hasPrefix("B") || $0.country.hasPrefix("B") })
     }
@@ -176,21 +176,21 @@ struct TrieSearchStrategyTests {
         strategy.index(cities: testCities)
         
         // Start with "Buenos"
-        let results1 = strategy.search(query: "Buenos")
+        let results1 = await strategy.search(query: "Buenos")
         #expect(results1.count == 1)
         #expect(results1.first?.name == "Buenos Aires")
         
         // Remove to "Buen"
-        let results2 = strategy.search(query: "Buen")
+        let results2 = await strategy.search(query: "Buen")
         #expect(results2.count > 0)
         
         // Add to "Buenos Aires"
-        let results3 = strategy.search(query: "Buenos Aires")
+        let results3 = await strategy.search(query: "Buenos Aires")
         #expect(results3.count == 1)
         #expect(results3.first?.name == "Buenos Aires")
         
         // Remove to "Buenos"
-        let results4 = strategy.search(query: "Buenos")
+        let results4 = await strategy.search(query: "Buenos")
         #expect(results4.count == 1)
         #expect(results4.first?.name == "Buenos Aires")
     }
@@ -200,17 +200,17 @@ struct TrieSearchStrategyTests {
         strategy.index(cities: testCities)
         
         // First search should perform full search
-        let results1 = strategy.search(query: "Buenos")
+        let results1 = await strategy.search(query: "Buenos")
         #expect(results1.count == 1)
         
         // Second search with same query should use cached state
-        let results2 = strategy.search(query: "Buenos")
+        let results2 = await strategy.search(query: "Buenos")
         #expect(results2.count == 1)
         #expect(results2.first?.name == "Buenos Aires")
         
         // Clear should reset state
         strategy.clear()
-        let results3 = strategy.search(query: "Buenos")
+        let results3 = await strategy.search(query: "Buenos")
         #expect(results3.isEmpty)
     }
     
@@ -218,9 +218,9 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results1 = strategy.search(query: "buenos")
-        let results2 = strategy.search(query: "BUENOS")
-        let results3 = strategy.search(query: "Buenos")
+        let results1 = await strategy.search(query: "buenos")
+        let results2 = await strategy.search(query: "BUENOS")
+        let results3 = await strategy.search(query: "Buenos")
         
         #expect(results1.count == 1)
         #expect(results2.count == 1)
@@ -234,7 +234,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Argentina")
+        let results = await strategy.search(query: "Argentina")
         
         #expect(results.count == 1)
         #expect(results.first?.country == "Argentina")
@@ -244,7 +244,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Buenos Aires, Argentina")
+        let results = await strategy.search(query: "Buenos Aires, Argentina")
         
         #expect(results.count == 1)
         #expect(results.first?.displayName == "Buenos Aires, Argentina")
@@ -254,7 +254,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Buenos Aires,")
+        let results = await strategy.search(query: "Buenos Aires,")
         
         #expect(results.count == 1)
         #expect(results.first?.displayName == "Buenos Aires, Argentina")
@@ -264,7 +264,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "São")
+        let results = await strategy.search(query: "São")
         
         #expect(results.count == 1)
         #expect(results.first?.name == "São Paulo")
@@ -276,7 +276,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "NonExistentCity")
+        let results = await strategy.search(query: "NonExistentCity")
         
         #expect(results.isEmpty)
     }
@@ -287,7 +287,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "Buenos")
+        let results = await strategy.search(query: "Buenos")
         
         #expect(results.count == 1)
         #expect(results.first?.name == "Buenos Aires")
@@ -303,7 +303,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: cities)
         
-        let results = strategy.search(query: "New")
+        let results = await strategy.search(query: "New")
         
         #expect(results.count == 3)
         // Newark should come first due to exact prefix match and shorter name
@@ -327,7 +327,7 @@ struct TrieSearchStrategyTests {
         
         #expect(strategy.indexedCityCount == 1000)
         
-        let results = strategy.search(query: "City1")
+        let results = await strategy.search(query: "City1")
         
         #expect(results.count > 0)
         #expect(results.allSatisfy { $0.name.hasPrefix("City1") })
@@ -344,7 +344,7 @@ struct TrieSearchStrategyTests {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: duplicateCities)
         
-        let results = strategy.search(query: "Buenos")
+        let results = await strategy.search(query: "Buenos")
         
         #expect(results.count == 2)
         #expect(results.allSatisfy { $0.name == "Buenos Aires" })
@@ -355,14 +355,14 @@ struct TrieSearchStrategyTests {
         strategy.index(cities: [])
         
         #expect(strategy.indexedCityCount == 0)
-        #expect(strategy.search(query: "anything").isEmpty)
+        await #expect(strategy.search(query: "anything").isEmpty)
     }
     
     @Test func testSingleCharacterQuery() async throws {
         let strategy = TrieSearchStrategy()
         strategy.index(cities: testCities)
         
-        let results = strategy.search(query: "B")
+        let results = await strategy.search(query: "B")
         
         #expect(results.count > 0)
         #expect(results.allSatisfy { $0.name.hasPrefix("B") || $0.country.hasPrefix("B") })

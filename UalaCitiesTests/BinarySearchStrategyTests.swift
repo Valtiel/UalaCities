@@ -45,7 +45,7 @@ struct BinarySearchStrategyTests {
         strategy.clear()
         
         #expect(strategy.indexedCityCount == 0)
-        #expect(strategy.search(query: "Buenos").isEmpty)
+        await #expect(strategy.search(query: "Buenos").isEmpty)
     }
     
     // MARK: - Indexing Tests
@@ -67,8 +67,8 @@ struct BinarySearchStrategyTests {
         strategy.index(cities: newCities)
         
         #expect(strategy.indexedCityCount == 1)
-        #expect(strategy.search(query: "Buenos").isEmpty)
-        #expect(strategy.search(query: "Moscow").count == 1)
+        await #expect(strategy.search(query: "Buenos").isEmpty)
+        await #expect(strategy.search(query: "Moscow").count == 1)
     }
     
     // MARK: - Search Tests
@@ -292,7 +292,7 @@ struct BinarySearchStrategyTests {
         strategy.index(cities: [])
         
         #expect(strategy.indexedCityCount == 0)
-        #expect(strategy.search(query: "anything").isEmpty)
+        await #expect(strategy.search(query: "anything").isEmpty)
     }
     
     @Test func testSingleCity() async throws {
