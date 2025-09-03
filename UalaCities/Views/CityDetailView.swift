@@ -23,6 +23,9 @@ enum CityDetailViewAction {
 struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
     
     @ObservedObject var viewState: ViewState
+    @State private var animateEntrance = false
+    @State private var mapScale: CGFloat = 0.8
+    @State private var favoriteButtonScale: CGFloat = 1.0
     
     var body: some View {
         ScrollView {
@@ -43,6 +46,14 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
                 Text(error.localizedDescription)
             }
         }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6)) {
+                animateEntrance = true
+            }
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2)) {
+                mapScale = 1.0
+            }
+        }
     }
     
     // MARK: - Private Helper Views
@@ -52,14 +63,21 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             Text("Location on Map")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .opacity(animateEntrance ? 1 : 0)
+                .offset(y: animateEntrance ? 0 : 20)
             
             CityMapView(coordinate: viewState.city.coord, cityName: viewState.city.name)
                 .frame(height: 200)
                 .cornerRadius(12)
+                .scaleEffect(mapScale)
+                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+        .opacity(animateEntrance ? 1 : 0)
+        .offset(y: animateEntrance ? 0 : 30)
+        .animation(.easeOut(duration: 0.8).delay(0.1), value: animateEntrance)
     }
     
     private var cityHeaderSection: some View {
@@ -67,13 +85,18 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             Text(viewState.city.name)
                 .font(.largeTitle)
                 .fontWeight(.bold)
+                .opacity(animateEntrance ? 1 : 0)
+                .offset(x: animateEntrance ? 0 : -30)
             
             Text(viewState.city.country)
                 .font(.title2)
                 .foregroundColor(.secondary)
+                .opacity(animateEntrance ? 1 : 0)
+                .offset(x: animateEntrance ? 0 : -30)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 10)
+        .animation(.easeOut(duration: 0.7).delay(0.3), value: animateEntrance)
     }
     
     private var actionButtonsSection: some View {
@@ -81,15 +104,31 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             favoriteButton
         }
         .padding(.bottom, 10)
+        .opacity(animateEntrance ? 1 : 0)
+        .offset(y: animateEntrance ? 0 : 20)
+        .animation(.easeOut(duration: 0.7).delay(0.4), value: animateEntrance)
     }
     
     private var favoriteButton: some View {
         Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                favoriteButtonScale = 0.8
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                    favoriteButtonScale = 1.0
+                }
+            }
+            
             viewState.perform(.toggleFavorite)
         }) {
             HStack {
                 Image(systemName: viewState.isFavorite ? "heart.fill" : "heart")
                     .foregroundColor(viewState.isFavorite ? .red : .gray)
+                    .scaleEffect(viewState.isFavorite ? 1.1 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: viewState.isFavorite)
+                
                 Text(viewState.isFavorite ? "Favorited" : "Add to Favorites")
                     .font(.body)
             }
@@ -99,6 +138,8 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             .cornerRadius(8)
         }
         .buttonStyle(PlainButtonStyle())
+        .scaleEffect(favoriteButtonScale)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: favoriteButtonScale)
     }
     
     private var cityInformationSection: some View {
@@ -106,17 +147,33 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             Text("City Information")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .opacity(animateEntrance ? 1 : 0)
+                .offset(y: animateEntrance ? 0 : 20)
             
             VStack(alignment: .leading, spacing: 8) {
                 InfoRow(title: "Full Name", value: viewState.city.displayName)
+                    .opacity(animateEntrance ? 1 : 0)
+                    .offset(x: animateEntrance ? 0 : -20)
+                
                 InfoRow(title: "Country", value: viewState.city.country)
+                    .opacity(animateEntrance ? 1 : 0)
+                    .offset(x: animateEntrance ? 0 : -20)
+                
                 InfoRow(title: "City ID", value: "\(viewState.city.id)")
+                    .opacity(animateEntrance ? 1 : 0)
+                    .offset(x: animateEntrance ? 0 : -20)
+                
                 coordinatesSection
+                    .opacity(animateEntrance ? 1 : 0)
+                    .offset(y: animateEntrance ? 0 : 20)
             }
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+        .opacity(animateEntrance ? 1 : 0)
+        .offset(y: animateEntrance ? 0 : 40)
+        .animation(.easeOut(duration: 0.8).delay(0.5), value: animateEntrance)
     }
     
     private var coordinatesSection: some View {
@@ -125,12 +182,17 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
                 title: "Latitude",
                 value: String(format: "%.4f", viewState.city.coord.lat)
             )
+            .opacity(animateEntrance ? 1 : 0)
+            .offset(x: animateEntrance ? 0 : -30)
             
             CoordinateView(
                 title: "Longitude",
                 value: String(format: "%.4f", viewState.city.coord.lon)
             )
+            .opacity(animateEntrance ? 1 : 0)
+            .offset(x: animateEntrance ? 0 : 30)
         }
+        .animation(.easeOut(duration: 0.9).delay(0.6), value: animateEntrance)
     }
     
     private var loadingOverlay: some View {
@@ -139,6 +201,8 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
                 ProgressView()
                     .scaleEffect(1.5)
                     .background(Color(.systemBackground).opacity(0.8))
+                    .transition(.opacity.combined(with: .scale))
+                    .animation(.easeInOut(duration: 0.3), value: viewState.isLoading)
             }
         }
     }
@@ -160,6 +224,7 @@ private struct InfoRow: View {
                 .font(.body)
                 .fontWeight(.medium)
         }
+        .animation(.easeOut(duration: 0.5), value: value)
     }
 }
 
@@ -176,6 +241,7 @@ private struct CoordinateView: View {
                 .font(.body)
                 .fontWeight(.medium)
         }
+        .animation(.easeOut(duration: 0.5), value: value)
     }
 }
 
@@ -184,6 +250,7 @@ private struct CityMapView: View {
     let cityName: String
     
     @State private var region: MKCoordinateRegion
+    @State private var mapOpacity: Double = 0
     
     init(coordinate: City.Coordinate, cityName: String) {
         self.coordinate = coordinate
@@ -208,6 +275,12 @@ private struct CityMapView: View {
         
         return Map(coordinateRegion: $region, annotationItems: [MapAnnotation(coordinate: mkCoordinate, cityName: cityName)]) { annotation in
             MapMarker(coordinate: annotation.coordinate, tint: .red)
+        }
+        .opacity(mapOpacity)
+        .onAppear {
+            withAnimation(.easeIn(duration: 1.0).delay(0.5)) {
+                mapOpacity = 1.0
+            }
         }
     }
 }

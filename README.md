@@ -40,6 +40,183 @@ UalaCities follows the **MVVM (Model-View-ViewModel)** architecture pattern comb
   - Conforms to `Identifiable`, `Codable`, `Equatable`, `Hashable`
   - Custom coding keys for JSON parsing
 
+## 🎨 View Architecture & State Management
+
+### View Architecture Overview
+
+UalaCities implements a **Protocol-Oriented View Architecture** that separates view logic from state management through clear protocols and action-based communication. This architecture ensures:
+
+- **Separation of Concerns**: Views are purely presentational, ViewModels handle business logic
+- **Testability**: ViewStates and ViewActions can be easily mocked for testing
+- **Reusability**: Views can work with any ViewModel that conforms to their state protocol
+- **Type Safety**: Compile-time guarantees for view state and action handling
+
+### View State Protocols
+
+Each view defines a protocol that specifies the exact state it requires to function:
+
+#### `CitySearchViewState`
+```swift
+protocol CitySearchViewState {
+    var cityList: [City] { get }
+    var filteredCityList: [City] { get }
+    var isLoading: Bool { get }
+    var currentPage: Int { get }
+    var hasMorePages: Bool { get }
+    var isLoadingMore: Bool { get }
+    var favoritesCount: Int { get }
+    func perform(_ action: CitySearchViewAction)
+    func isFavorite(_ city: City) -> Bool
+    func onViewAppear()
+}
+```
+
+#### `CitySearchDetailViewState`
+```swift
+protocol CitySearchDetailViewState {
+    // Inherits all search properties from CitySearchViewState
+    var selectedCity: City? { get }
+    var isDetailFavorite: Bool { get }
+    func perform(_ action: CitySearchDetailViewAction)
+    func isFavorite(_ city: City) -> Bool
+    func onViewAppear()
+}
+```
+
+#### `CityDetailViewState`
+```swift
+protocol CityDetailViewState {
+    var city: City { get }
+    var isLoading: Bool { get }
+    var error: Error? { get }
+    var isFavorite: Bool { get }
+    func perform(_ action: CityDetailViewAction)
+}
+```
+
+#### `FavoritesViewState`
+```swift
+protocol FavoritesViewState {
+    var favoriteCities: [City] { get }
+    var isLoading: Bool { get }
+    func perform(_ action: FavoritesViewAction)
+}
+```
+
+### View Action Enums
+
+Actions are defined as enums that represent all possible user interactions:
+
+#### `CitySearchViewAction`
+```swift
+enum CitySearchViewAction {
+    case searchQuery(String)      // User types in search field
+    case selectCity(City)         // User taps on a city
+    case loadMore                 // User scrolls to bottom
+    case toggleFavorite(City)     // User taps favorite button
+    case showFavorites            // User taps favorites button
+}
+```
+
+#### `CitySearchDetailViewAction`
+```swift
+enum CitySearchDetailViewAction {
+    case searchQuery(String)      // User types in search field
+    case selectCity(City)         // User selects city from list
+    case loadMore                 // User scrolls to bottom
+    case toggleFavorite(City)     // User toggles favorite in list
+    case toggleDetailFavorite     // User toggles favorite in detail
+    case showFavorites            // User taps favorites button
+}
+```
+
+#### `CityDetailViewAction`
+```swift
+enum CityDetailViewAction {
+    case toggleFavorite           // User toggles favorite status
+}
+```
+
+#### `FavoritesViewAction`
+```swift
+enum FavoritesViewAction {
+    case selectCity(City)         // User selects a favorite city
+    case toggleFavorite(City)     // User removes from favorites
+}
+```
+
+### View Implementation Pattern
+
+Views are implemented as generic structs that accept any ViewState conforming to their protocol:
+
+```swift
+struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
+    @ObservedObject var viewState: ViewState
+    
+    var body: some View {
+        // View implementation that only accesses state through protocol
+    }
+}
+```
+
+### State Management Flow
+
+#### 1. **Unidirectional Data Flow**
+```
+User Action → View → ViewModel.perform(action) → State Update → UI Update
+```
+
+#### 2. **State Binding**
+- Views observe ViewModels through `@ObservedObject`
+- ViewModels publish state changes through `@Published` properties
+- Combine framework handles automatic UI updates
+
+#### 3. **Action Handling**
+- Views call `viewState.perform(action)` for all user interactions
+- ViewModels implement action handling logic
+- Actions trigger business logic and state updates
+
+### Why This Architecture?
+
+#### **1. Protocol-Oriented Design**
+- **Flexibility**: Views can work with any ViewModel conforming to their protocol
+- **Testing**: Easy to create mock ViewStates for isolated view testing
+- **Dependency Inversion**: Views depend on abstractions, not concrete implementations
+
+#### **2. Action-Based Communication**
+- **Clear Intent**: Each action represents a specific user intention
+- **Predictable Flow**: All user interactions follow the same pattern
+- **Debugging**: Easy to trace user actions through the system
+
+#### **3. Generic View Implementation**
+- **Reusability**: Same view can work with different ViewModels
+
+#### **4. Separation of Concerns**
+- **Views**: Pure presentation, no business logic
+- **ViewModels**: Business logic and state management
+- **Protocols**: Clear contracts between layers
+
+### State Synchronization
+
+#### **Coordinator-Based State Management**
+- `AppCoordinator` maintains global state (selected city, navigation path)
+- ViewModels sync with coordinator for cross-view state
+- State persists across orientation changes and navigation
+
+#### **Service-Based State Updates**
+- `FavoritesService` publishes favorite changes
+- `CityDataService` publishes data loading states
+- ViewModels bind to service publishers for automatic updates
+
+### Benefits of This Architecture
+
+1. **Testability**: Each component can be tested in isolation
+2. **Maintainability**: Clear separation of responsibilities
+3. **Scalability**: Easy to add new views and ViewModels
+4. **Performance**: Efficient state updates through Combine
+5. **Debugging**: Clear action flow and state changes
+6. **Reusability**: Views can be reused with different ViewModels
+
 ### Views
 
 #### `MainView`
