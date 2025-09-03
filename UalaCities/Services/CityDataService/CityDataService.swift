@@ -6,15 +6,72 @@
 //
 
 import Foundation
+import Combine
+
+/// Protocol defining the interface for city data services
+protocol CityDataService: ObservableObject {
+    
+    // MARK: - Properties
+    
+    /// The list of cities
+    var cities: [City] { get }
+    
+    /// Whether cities are currently being loaded
+    var isLoading: Bool { get }
+    
+    // MARK: - Publishers
+    
+    /// Publisher for cities updates
+    var citiesPublisher: Published<[City]>.Publisher { get }
+    
+    /// Publisher for loading state updates
+    var isLoadingPublisher: Published<Bool>.Publisher { get }
+    
+    /// Publisher for error updates
+    var errorPublisher: Published<Error?>.Publisher { get }
+    
+    // MARK: - Computed Properties
+    
+    /// Returns true if cities have been loaded
+    var isDataLoaded: Bool { get }
+    
+    // MARK: - Methods
+    
+    /// Loads cities from the data provider
+    func loadCities()
+    
+    /// Reloads cities from the data provider
+    func reloadCities()
+    
+    /// Returns a filtered list of cities based on search query
+    func searchCities(query: String) -> [City]
+    
+    /// Returns a city by its ID
+    func city(withId id: Int) -> City?
+}
 
 /// Service that manages city data loading and provides access to the city list
-final class CityDataService: ObservableObject {
+final class CityDataByProviderService: CityDataService {
     
     // MARK: - Published Properties
     
     @Published private(set) var cities: [City] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: Error?
+    
+    // MARK: - Publishers
+    
+    var citiesPublisher: Published<[City]>.Publisher {
+        $cities
+    }
+    
+    var isLoadingPublisher: Published<Bool>.Publisher {
+        $isLoading
+    }
+    
+    var errorPublisher: Published<Error?>.Publisher {
+        $error
+    }
     
     // MARK: - Private Properties
     
@@ -101,23 +158,23 @@ final class CityDataService: ObservableObject {
 
 // MARK: - Factory Methods
 
-extension CityDataService {
+extension CityDataByProviderService {
     
     /// Creates a service with network data provider
-    static func withNetworkProvider(url: URL) -> CityDataService {
+    static func withNetworkProvider(url: URL) -> any CityDataService {
         let provider = NetworkCityDataProvider(url: url)
-        return CityDataService(dataProvider: provider)
+        return CityDataByProviderService(dataProvider: provider)
     }
     
     /// Creates a service with local file data provider
-    static func withLocalFileProvider(fileName: String = "cities") -> CityDataService {
+    static func withLocalFileProvider(fileName: String = "cities") -> any CityDataService {
         let provider = LocalFileCityDataProvider(fileName: fileName)
-        return CityDataService(dataProvider: provider)
+        return CityDataByProviderService(dataProvider: provider)
     }
     
     /// Creates a service with mock data provider for testing
-    static func withMockProvider(cities: [City] = [], delay: TimeInterval = 1.0) -> CityDataService {
+    static func withMockProvider(cities: [City] = [], delay: TimeInterval = 1.0) -> any CityDataService {
         let provider = MockCityDataProvider(cities: cities, delay: delay)
-        return CityDataService(dataProvider: provider)
+        return CityDataByProviderService(dataProvider: provider)
     }
 }

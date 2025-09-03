@@ -8,7 +8,6 @@
 import SwiftUI
 
 /// Main coordinator that manages navigation and view instantiation
-@MainActor
 final class AppCoordinator: Coordinator {
     
     // MARK: - Published Properties

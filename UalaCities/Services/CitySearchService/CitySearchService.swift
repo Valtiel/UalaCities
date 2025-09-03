@@ -7,9 +7,30 @@
 
 import Foundation
 
+/// Protocol defining the interface for city search services
+protocol CitySearchService {
+    /// Indexes cities for searching
+    /// - Parameter cities: Array of cities to index
+    func index(cities: [City])
+    
+    /// Searches for cities matching the query
+    /// - Parameter query: The search query
+    /// - Returns: Array of matching cities, sorted by relevance
+    func search(query: String) async -> [City]
+    
+    /// Clears all indexed cities
+    func clear()
+    
+    /// Returns the total number of indexed cities
+    var indexedCityCount: Int { get }
+    
+    /// Returns true if cities have been indexed
+    var isIndexed: Bool { get }
+}
+
 /// Service class that provides city search functionality using different strategies
 /// This allows for easy switching between different search implementations
-class CitySearchService {
+final class CitySearchByStrategyService: CitySearchService {
     
     // MARK: - Properties
     
@@ -30,6 +51,8 @@ class CitySearchService {
     func setStrategy(_ newStrategy: CitySearchStrategy) {
         self.strategy = newStrategy
     }
+    
+    // MARK: - CitySearchService Implementation
     
     /// Indexes cities for searching
     /// - Parameter cities: Array of cities to index

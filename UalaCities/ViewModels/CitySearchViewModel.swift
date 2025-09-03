@@ -23,8 +23,8 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     
     // MARK: - Private Properties
     
-    private let searchService: CitySearchService
-    private let cityDataService: CityDataService
+    private let searchService: any CitySearchService
+    private let cityDataService: any CityDataService
     let favoritesService: any FavoritesService
     private let itemsPerPage: Int = 20
     private var cancellables = Set<AnyCancellable>()
@@ -33,7 +33,7 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     
     // MARK: - Initialization
     
-    init(searchService: CitySearchService, cityDataService: CityDataService, favoritesService: any FavoritesService, coordinator: (any Coordinator)? = nil) {
+    init(searchService: any CitySearchService, cityDataService: any CityDataService, favoritesService: any FavoritesService, coordinator: (any Coordinator)? = nil) {
         self.searchService = searchService
         self.cityDataService = cityDataService
         self.favoritesService = favoritesService
@@ -46,8 +46,8 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     }
     
     convenience init(coordinator: (any Coordinator)? = nil, favoritesService: (any FavoritesService)? = nil) {
-        let searchService = CitySearchService(strategy: TrieSearchStrategy())
-        let cityDataService = CityDataService.withLocalFileProvider(fileName: "cities")
+        let searchService = CitySearchByStrategyService(strategy: TrieSearchStrategy())
+        let cityDataService = CityDataByProviderService.withLocalFileProvider(fileName: "cities")
         let service = favoritesService ?? UserDefaultsFavoritesService()
         self.init(searchService: searchService, cityDataService: cityDataService, favoritesService: service, coordinator: coordinator)
     }
@@ -91,7 +91,7 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     // MARK: - Private Methods
     
     private func setupBindings() {
-        cityDataService.$cities
+        cityDataService.citiesPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] cities in
                 self?.cityList = cities
@@ -115,14 +115,12 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             searchCities("")
         }
         
-        cityDataService.$isLoading
+        cityDataService.isLoadingPublisher
             .receive(on: DispatchQueue.main)
             .assign(to: \.isLoading, on: self)
             .store(in: &cancellables)
         
-
-        
-        cityDataService.$error
+        cityDataService.errorPublisher
             .receive(on: DispatchQueue.main)
             .assign(to: \.error, on: self)
             .store(in: &cancellables)

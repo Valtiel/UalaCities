@@ -13,16 +13,16 @@ final class ServicesManager: ObservableObject {
     
     // MARK: - Shared Services
     
-    let cityDataService: CityDataService
-    let searchService: CitySearchService
+    let cityDataService: any CityDataService
+    let searchService: any CitySearchService
     let favoritesService: any FavoritesService
     
     // MARK: - Initialization
     
     init() {
         // Initialize services
-        self.cityDataService = CityDataService.withLocalFileProvider(fileName: "cities")
-        self.searchService = CitySearchService(strategy: TrieSearchStrategy())
+        self.cityDataService = CityDataByProviderService.withLocalFileProvider(fileName: "cities")
+        self.searchService = CitySearchByStrategyService(strategy: TrieSearchStrategy())
         self.favoritesService = UserDefaultsFavoritesService()
         
         // Preload data for better performance
@@ -30,7 +30,7 @@ final class ServicesManager: ObservableObject {
     }
     
     /// Convenience initializer for testing with mock services
-    init(cityDataService: CityDataService, searchService: CitySearchService, favoritesService: any FavoritesService) {
+    init(cityDataService: any CityDataService, searchService: any CitySearchService, favoritesService: any FavoritesService) {
         self.cityDataService = cityDataService
         self.searchService = searchService
         self.favoritesService = favoritesService
