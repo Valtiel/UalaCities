@@ -34,7 +34,6 @@ enum CitySearchDetailViewAction {
 struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewState>: View {
     
     @ObservedObject var viewState: ViewState
-    @State private var query: String = ""
     
     var body: some View {
         HStack(spacing: 0) {
@@ -48,9 +47,6 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
                 .frame(maxWidth: .infinity)
         }
         .navigationTitle("City Search & Detail")
-        .onChange(of: query) { oldQuery, newQuery in
-            viewState.perform(.searchQuery(newQuery))
-        }
         .onAppear {
             viewState.onViewAppear()
         }
@@ -59,91 +55,9 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
     // MARK: - Private Helper Views
     
     private var searchSection: some View {
-        VStack {
-            searchHeader
-            contentSection
-        }
-    }
-    
-    private var searchHeader: some View {
-        HStack {
-            TextField("Search city...", text: $query)
-                .textFieldStyle(.roundedBorder)
-            
-            favoritesButton
-        }
-        .padding()
-        .onSubmit {
-            viewState.perform(.searchQuery(query))
-        }
-    }
-    
-    private var favoritesButton: some View {
-        Button(action: {
-            viewState.perform(.showFavorites)
-        }) {
-            HStack {
-                Image(systemName: "heart.fill")
-                    .foregroundColor(.red)
-                Text("\(viewState.favoritesCount)")
-                    .font(.caption)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.red.opacity(0.1))
-            .cornerRadius(8)
-        }
-    }
-    
-    private var contentSection: some View {
-        Group {
-            if viewState.isLoading {
-                loadingView
-                Spacer()
-            } else {
-                cityListView
-            }
-        }
-    }
-    
-    private var loadingView: some View {
-        ProgressView()
-            .padding()
-    }
-    
-    private var cityListView: some View {
-        List {
-            ForEach(viewState.filteredCityList, id: \.id) { city in
-                CityRowView(
-                    city: city,
-                    isFavorite: viewState.isFavorite(city),
-                    isSelected: viewState.selectedCity?.id == city.id,
-                    onSelect: { viewState.perform(.selectCity(city)) },
-                    onToggleFavorite: { viewState.perform(.toggleFavorite(city)) }
-                )
-            }
-            
-            if viewState.hasMorePages {
-                loadMoreSection
-            }
-        }
-    }
-    
-    private var loadMoreSection: some View {
-        HStack {
-            Spacer()
-            if viewState.isLoadingMore {
-                ProgressView()
-                    .scaleEffect(0.8)
-            } else {
-                Button("Load More") {
-                    viewState.perform(.loadMore)
-                }
-                .foregroundColor(.blue)
-            }
-            Spacer()
-        }
-        .padding(.vertical, 8)
+        CitySearchView(viewState: SearchViewStateAdapter(
+            detailViewState: viewState
+        ))
     }
     
     private var detailSection: some View {
@@ -182,40 +96,44 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
     }
 }
 
-// MARK: - City Row View
+// MARK: - Search View State Adapter
 
-private struct CityRowView: View {
-    let city: City
-    let isFavorite: Bool
-    let isSelected: Bool
-    let onSelect: () -> Void
-    let onToggleFavorite: () -> Void
+private class SearchViewStateAdapter: ObservableObject, CitySearchViewState {
+    private let detailViewState: CitySearchDetailViewState
     
-    var body: some View {
-        HStack {
-            Button(action: onSelect) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(city.name), \(city.country)")
-                        .font(.body)
-                        .foregroundColor(.primary)
-                    
-                    Text("Lat: \(String(format: "%.4f", city.coord.lat)), Lon: \(String(format: "%.4f", city.coord.lon))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .buttonStyle(PlainButtonStyle())
-            .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
-            .cornerRadius(8)
-            
-            Button(action: onToggleFavorite) {
-                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                    .foregroundColor(isFavorite ? .red : .gray)
-            }
-            .buttonStyle(PlainButtonStyle())
+    init(detailViewState: CitySearchDetailViewState) {
+        self.detailViewState = detailViewState
+    }
+    
+    var cityList: [City] { detailViewState.cityList }
+    var filteredCityList: [City] { detailViewState.filteredCityList }
+    var isLoading: Bool { detailViewState.isLoading }
+    var currentPage: Int { detailViewState.currentPage }
+    var hasMorePages: Bool { detailViewState.hasMorePages }
+    var isLoadingMore: Bool { detailViewState.isLoadingMore }
+    var favoritesCount: Int { detailViewState.favoritesCount }
+    
+    func perform(_ action: CitySearchViewAction) {
+        switch action {
+        case .searchQuery(let query):
+            detailViewState.perform(.searchQuery(query))
+        case .selectCity(let city):
+            detailViewState.perform(.selectCity(city))
+        case .loadMore:
+            detailViewState.perform(.loadMore)
+        case .toggleFavorite(let city):
+            detailViewState.perform(.toggleFavorite(city))
+        case .showFavorites:
+            detailViewState.perform(.showFavorites)
         }
-        .padding(.vertical, 4)
+    }
+    
+    func isFavorite(_ city: City) -> Bool {
+        detailViewState.isFavorite(city)
+    }
+    
+    func onViewAppear() {
+        detailViewState.onViewAppear()
     }
 }
 
