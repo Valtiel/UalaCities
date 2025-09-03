@@ -8,12 +8,27 @@
 import Foundation
 import Combine
 
-/// Service that manages favorite cities with persistence
-final class FavoritesService: ObservableObject {
+/// Protocol defining the interface for favorite cities management
+protocol FavoritesService: ObservableObject {
+    var favoriteCities: [City] { get }
+    var favoriteCitiesPublisher: Published<[City]>.Publisher { get }
+    func addToFavorites(_ city: City)
+    func removeFromFavorites(_ city: City)
+    func toggleFavorite(_ city: City)
+    func isFavorite(_ city: City) -> Bool
+    var favoritesCount: Int { get }
+}
+
+/// Service that manages favorite cities with persistence using UserDefaults
+final class UserDefaultsFavoritesService: FavoritesService {
     
     // MARK: - Published Properties
     
     @Published private(set) var favoriteCities: [City] = []
+    
+    var favoriteCitiesPublisher: Published<[City]>.Publisher {
+        $favoriteCities
+    }
     
     // MARK: - Private Properties
     

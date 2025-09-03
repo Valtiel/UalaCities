@@ -17,13 +17,13 @@ final class FavoritesViewModel: ObservableObject, FavoritesViewState {
     
     // MARK: - Private Properties
     
-    private let favoritesService: FavoritesService
+    private let favoritesService: any FavoritesService
     private weak var coordinator: (any Coordinator)?
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
     
-    init(favoritesService: FavoritesService, coordinator: (any Coordinator)? = nil) {
+    init(favoritesService: any FavoritesService, coordinator: (any Coordinator)? = nil) {
         self.favoritesService = favoritesService
         self.coordinator = coordinator
         setupBindings()
@@ -46,7 +46,7 @@ final class FavoritesViewModel: ObservableObject, FavoritesViewState {
     // MARK: - Private Methods
     
     private func setupBindings() {
-        favoritesService.$favoriteCities
+        favoritesService.favoriteCitiesPublisher
             .receive(on: DispatchQueue.main)
             .assign(to: \.favoriteCities, on: self)
             .store(in: &cancellables)

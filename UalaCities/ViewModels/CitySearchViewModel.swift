@@ -25,7 +25,7 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     
     private let searchService: CitySearchService
     private let cityDataService: CityDataService
-    let favoritesService: FavoritesService
+    let favoritesService: any FavoritesService
     private let itemsPerPage: Int = 20
     private var cancellables = Set<AnyCancellable>()
     private weak var coordinator: (any Coordinator)?
@@ -33,7 +33,7 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
     
     // MARK: - Initialization
     
-    init(searchService: CitySearchService, cityDataService: CityDataService, favoritesService: FavoritesService, coordinator: (any Coordinator)? = nil) {
+    init(searchService: CitySearchService, cityDataService: CityDataService, favoritesService: any FavoritesService, coordinator: (any Coordinator)? = nil) {
         self.searchService = searchService
         self.cityDataService = cityDataService
         self.favoritesService = favoritesService
@@ -45,10 +45,10 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         }
     }
     
-    convenience init(coordinator: (any Coordinator)? = nil, favoritesService: FavoritesService? = nil) {
+    convenience init(coordinator: (any Coordinator)? = nil, favoritesService: (any FavoritesService)? = nil) {
         let searchService = CitySearchService(strategy: TrieSearchStrategy())
         let cityDataService = CityDataService.withLocalFileProvider(fileName: "cities")
-        let service = favoritesService ?? FavoritesService()
+        let service = favoritesService ?? UserDefaultsFavoritesService()
         self.init(searchService: searchService, cityDataService: cityDataService, favoritesService: service, coordinator: coordinator)
     }
     
@@ -127,7 +127,7 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
             .assign(to: \.error, on: self)
             .store(in: &cancellables)
         
-        favoritesService.$favoriteCities
+        favoritesService.favoriteCitiesPublisher
             .receive(on: DispatchQueue.main)
             .map { $0.count }
             .assign(to: \.favoritesCount, on: self)

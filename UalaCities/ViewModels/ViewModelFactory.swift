@@ -8,7 +8,6 @@
 import Foundation
 
 /// Factory responsible for creating view models with proper dependencies
-@MainActor
 final class ViewModelFactory {
     
     // MARK: - Dependencies

@@ -29,7 +29,6 @@ enum SheetDestination: Identifiable {
 }
 
 /// Protocol defining the interface for app coordination and navigation
-@MainActor
 protocol Coordinator: ObservableObject {
     
     // MARK: - Navigation Methods

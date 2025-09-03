@@ -19,13 +19,13 @@ final class CityDetailViewModel: ObservableObject, CityDetailViewState {
     
     // MARK: - Private Properties
     
-    private let favoritesService: FavoritesService
+    private let favoritesService: any FavoritesService
     private let coordinator: (any Coordinator)?
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
     
-    init(city: City, favoritesService: FavoritesService, coordinator: (any Coordinator)? = nil) {
+    init(city: City, favoritesService: any FavoritesService, coordinator: (any Coordinator)? = nil) {
         self.city = city
         self.favoritesService = favoritesService
         self.coordinator = coordinator
@@ -45,7 +45,7 @@ final class CityDetailViewModel: ObservableObject, CityDetailViewState {
     
     private func setupBindings() {
         // Monitor favorite status changes
-        favoritesService.$favoriteCities
+        favoritesService.favoriteCitiesPublisher
             .receive(on: DispatchQueue.main)
             .map { [weak self] favoriteCities in
                 guard let self = self else { return false }
