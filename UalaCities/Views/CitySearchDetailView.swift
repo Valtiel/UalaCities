@@ -33,7 +33,18 @@ enum CitySearchDetailViewAction {
 
 struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewState>: View {
     
+    // MARK: - Constants
+    
+    private enum Constants {
+        static var viewEntranceDuration: Double { 0.3 }
+        static var emptyStateScale: Double { 0.95 }
+        static var emptyStateAnimationDuration: Double { 0.4 }
+        static var emptyStateAnimationDelay: Double { 0.1 }
+        static var citySelectionTransitionDuration: Double { 0.2 }
+    }
+    
     @ObservedObject var viewState: ViewState
+    @State private var viewAppeared = false
     
     var body: some View {
         HStack(spacing: 0) {
@@ -47,8 +58,12 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
                 .frame(maxWidth: .infinity)
         }
         .navigationTitle("City Search & Detail")
+        .opacity(viewAppeared ? 1 : 0)
         .onAppear {
             viewState.onViewAppear()
+            withAnimation(.easeOut(duration: Constants.viewEntranceDuration)) {
+                viewAppeared = true
+            }
         }
     }
     
@@ -68,10 +83,15 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
                     isFavorite: viewState.isDetailFavorite,
                     onToggleFavorite: { viewState.perform(.toggleDetailFavorite) }
                 ))
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
             } else {
                 emptyDetailView
+                    .opacity(viewAppeared ? 1 : 0)
+                    .scaleEffect(viewAppeared ? 1.0 : Constants.emptyStateScale)
+                    .animation(.easeOut(duration: Constants.emptyStateAnimationDuration).delay(Constants.emptyStateAnimationDelay), value: viewAppeared)
             }
         }
+        .animation(.easeInOut(duration: Constants.citySelectionTransitionDuration), value: viewState.selectedCity)
     }
     
     private var emptyDetailView: some View {

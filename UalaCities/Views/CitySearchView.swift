@@ -30,11 +30,25 @@ enum CitySearchViewAction {
 
 struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
     
+    // MARK: - Constants
+    
+    private enum Constants {
+        static var searchFieldEntranceDuration: Double { 0.3 }
+        static var favoritesButtonPressDuration: Double { 0.1 }
+        static var favoritesButtonPressDelay: Double { 0.1 }
+        static var cityRowEntranceDuration: Double { 0.6 }
+        static var cityRowEntranceDelay: Double { 0.4 }
+        static var cityRowStaggerDelay: Double { 0.05 }
+        static var loadMoreEntranceDuration: Double { 0.7 }
+        static var loadMoreEntranceDelay: Double { 0.6 }
+        static var loadMoreStateTransitionDuration: Double { 0.3 }
+        static var listUpdateDuration: Double { 0.2 }
+    }
+    
     @ObservedObject var viewState: ViewState
     @State private var query: String = ""
-    @State private var animateEntrance = false
-    @State private var searchFieldScale: CGFloat = 0.95
-    @State private var favoritesButtonScale: CGFloat = 1.0
+    @State private var searchFieldAppeared = false
+    @State private var favoritesButtonPressed = false
     
     var body: some View {
         VStack {
@@ -47,11 +61,8 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
         }
         .onAppear {
             viewState.onViewAppear()
-            withAnimation(.easeOut(duration: 0.6)) {
-                animateEntrance = true
-            }
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2)) {
-                searchFieldScale = 1.0
+            withAnimation(.easeOut(duration: Constants.searchFieldEntranceDuration)) {
+                searchFieldAppeared = true
             }
         }
     }
@@ -62,30 +73,26 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
         HStack {
             TextField("Search city...", text: $query)
                 .textFieldStyle(.roundedBorder)
-                .scaleEffect(searchFieldScale)
-                .opacity(animateEntrance ? 1 : 0)
-                .offset(y: animateEntrance ? 0 : -20)
+                .opacity(searchFieldAppeared ? 1 : 0)
+                .offset(y: searchFieldAppeared ? 0 : -10)
             
             favoritesButton
-                .opacity(animateEntrance ? 1 : 0)
-                .offset(x: animateEntrance ? 0 : 30)
         }
         .padding()
         .onSubmit {
             viewState.perform(.searchQuery(query))
         }
-        .animation(.easeOut(duration: 0.7).delay(0.1), value: animateEntrance)
     }
     
     private var favoritesButton: some View {
         Button(action: {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                favoritesButtonScale = 0.9
+            withAnimation(.easeInOut(duration: Constants.favoritesButtonPressDuration)) {
+                favoritesButtonPressed = true
             }
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    favoritesButtonScale = 1.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + Constants.favoritesButtonPressDelay) {
+                withAnimation(.easeInOut(duration: Constants.favoritesButtonPressDuration)) {
+                    favoritesButtonPressed = false
                 }
             }
             
@@ -94,40 +101,32 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
             HStack {
                 Image(systemName: "heart.fill")
                     .foregroundColor(.red)
-                    .scaleEffect(favoritesButtonScale)
+                    .scaleEffect(favoritesButtonPressed ? 0.9 : 1.0)
                 Text("\(viewState.favoritesCount)")
                     .font(.caption)
-                    .scaleEffect(favoritesButtonScale)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(Color.red.opacity(0.1))
             .cornerRadius(8)
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: favoritesButtonScale)
     }
     
     private var contentSection: some View {
         Group {
             if viewState.isLoading {
                 loadingView
-                    .opacity(animateEntrance ? 1 : 0)
-                    .scaleEffect(animateEntrance ? 1 : 0.8)
                 Spacer()
             } else {
                 cityListView
-                    .opacity(animateEntrance ? 1 : 0)
-                    .offset(y: animateEntrance ? 0 : 30)
             }
         }
-        .animation(.easeOut(duration: 0.8).delay(0.3), value: animateEntrance)
+        .animation(.easeInOut(duration: Constants.listUpdateDuration), value: viewState.isLoading)
     }
     
     private var loadingView: some View {
         ProgressView()
             .padding()
-            .scaleEffect(animateEntrance ? 1 : 0.8)
-            .animation(.easeOut(duration: 0.6).delay(0.4), value: animateEntrance)
     }
     
     private var cityListView: some View {
@@ -139,19 +138,14 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
                     onSelect: { viewState.perform(.selectCity(city)) },
                     onToggleFavorite: { viewState.perform(.toggleFavorite(city)) }
                 )
-                .opacity(animateEntrance ? 1 : 0)
-                .offset(x: animateEntrance ? 0 : -50)
-                .animation(.easeOut(duration: 0.6).delay(0.4 + Double(index) * 0.05), value: animateEntrance)
             }
             
             if viewState.hasMorePages {
                 loadMoreSection
-                    .opacity(animateEntrance ? 1 : 0)
-                    .offset(y: animateEntrance ? 0 : 20)
-                    .animation(.easeOut(duration: 0.7).delay(0.6), value: animateEntrance)
             }
         }
         .listStyle(PlainListStyle())
+        .animation(.easeInOut(duration: Constants.listUpdateDuration), value: viewState.filteredCityList.count)
     }
     
     private var loadMoreSection: some View {
@@ -160,32 +154,37 @@ struct CitySearchView<ViewState: ObservableObject & CitySearchViewState>: View {
             if viewState.isLoadingMore {
                 ProgressView()
                     .scaleEffect(0.8)
-                    .transition(.scale.combined(with: .opacity))
-                    .animation(.easeInOut(duration: 0.3), value: viewState.isLoadingMore)
             } else {
                 Button("Load More") {
                     viewState.perform(.loadMore)
                 }
                 .foregroundColor(.blue)
-                .transition(.opacity.combined(with: .scale))
-                .animation(.easeInOut(duration: 0.3), value: viewState.isLoadingMore)
             }
             Spacer()
         }
         .padding(.vertical, 8)
+        .animation(.easeInOut(duration: Constants.loadMoreStateTransitionDuration), value: viewState.isLoadingMore)
     }
 }
 
 // MARK: - City Row View
 
 private struct CityRowView: View {
+    
+    // MARK: - Constants
+    
+    private enum Constants {
+        static var favoriteButtonPressDuration: Double { 0.1 }
+        static var favoriteButtonPressDelay: Double { 0.1 }
+        static var favoriteButtonScale: Double { 0.8 }
+    }
+    
     let city: City
     let isFavorite: Bool
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
     
-    @State private var favoriteButtonScale: CGFloat = 1.0
-    @State private var rowOpacity: Double = 1.0
+    @State private var favoriteButtonPressed = false
     
     var body: some View {
         HStack {
@@ -202,17 +201,15 @@ private struct CityRowView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .buttonStyle(PlainButtonStyle())
-            .opacity(rowOpacity)
-            .scaleEffect(rowOpacity)
             
             Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    favoriteButtonScale = 0.8
+                withAnimation(.easeInOut(duration: Constants.favoriteButtonPressDuration)) {
+                    favoriteButtonPressed = true
                 }
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                        favoriteButtonScale = 1.0
+                DispatchQueue.main.asyncAfter(deadline: .now() + Constants.favoriteButtonPressDelay) {
+                    withAnimation(.easeInOut(duration: Constants.favoriteButtonPressDuration)) {
+                        favoriteButtonPressed = false
                     }
                 }
                 
@@ -220,20 +217,10 @@ private struct CityRowView: View {
             }) {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
                     .foregroundColor(isFavorite ? .red : .gray)
-                    .scaleEffect(favoriteButtonScale)
+                    .scaleEffect(favoriteButtonPressed ? Constants.favoriteButtonScale : 1.0)
                     .scaleEffect(isFavorite ? 1.1 : 1.0)
             }
             .buttonStyle(PlainButtonStyle())
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isFavorite)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: favoriteButtonScale)
-        }
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.5)) {
-                rowOpacity = 1.0
-            }
-        }
-        .onDisappear {
-            rowOpacity = 0.8
         }
     }
 }

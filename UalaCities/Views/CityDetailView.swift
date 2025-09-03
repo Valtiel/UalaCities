@@ -22,10 +22,32 @@ enum CityDetailViewAction {
 
 struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
     
+    // MARK: - Constants
+    
+    private enum Constants {
+        static var mapEntranceDuration: Double { 0.3 }
+        static var mapInitialScale: Double { 0.95 }
+        static var mapInitialOpacity: Double { 0.8 }
+        static var favoriteButtonPressDuration: Double { 0.1 }
+        static var favoriteButtonPressDelay: Double { 0.1 }
+        static var favoriteButtonScale: Double { 0.9 }
+        static var loadingTransitionDuration: Double { 0.2 }
+        static var mapFadeDuration: Double { 0.3 }
+        static var headerEntranceDuration: Double { 0.5 }
+        static var headerEntranceDelay: Double { 0.2 }
+        static var infoSectionEntranceDuration: Double { 0.6 }
+        static var infoSectionEntranceDelay: Double { 0.3 }
+        static var coordinatesEntranceDuration: Double { 0.7 }
+        static var coordinatesEntranceDelay: Double { 0.4 }
+        static var actionButtonsEntranceDuration: Double { 0.5 }
+        static var actionButtonsEntranceDelay: Double { 0.3 }
+        static var infoRowAnimationDuration: Double { 0.5 }
+    }
+    
     @ObservedObject var viewState: ViewState
+    @State private var mapAppeared = false
+    @State private var favoriteButtonPressed = false
     @State private var animateEntrance = false
-    @State private var mapScale: CGFloat = 0.8
-    @State private var favoriteButtonScale: CGFloat = 1.0
     
     var body: some View {
         ScrollView {
@@ -47,11 +69,11 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             }
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.6)) {
-                animateEntrance = true
+            withAnimation(.easeOut(duration: Constants.mapEntranceDuration)) {
+                mapAppeared = true
             }
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2)) {
-                mapScale = 1.0
+            withAnimation(.easeOut(duration: Constants.headerEntranceDuration).delay(Constants.headerEntranceDelay)) {
+                animateEntrance = true
             }
         }
     }
@@ -69,7 +91,8 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             CityMapView(coordinate: viewState.city.coord, cityName: viewState.city.name)
                 .frame(height: 200)
                 .cornerRadius(12)
-                .scaleEffect(mapScale)
+                .scaleEffect(mapAppeared ? 1.0 : Constants.mapInitialScale)
+                .opacity(mapAppeared ? 1.0 : Constants.mapInitialOpacity)
                 .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
         }
         .padding()
@@ -77,7 +100,7 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
         .cornerRadius(12)
         .opacity(animateEntrance ? 1 : 0)
         .offset(y: animateEntrance ? 0 : 30)
-        .animation(.easeOut(duration: 0.8).delay(0.1), value: animateEntrance)
+        .animation(.easeOut(duration: Constants.mapEntranceDuration).delay(Constants.headerEntranceDelay), value: animateEntrance)
     }
     
     private var cityHeaderSection: some View {
@@ -96,7 +119,7 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 10)
-        .animation(.easeOut(duration: 0.7).delay(0.3), value: animateEntrance)
+        .animation(.easeOut(duration: Constants.headerEntranceDuration).delay(Constants.headerEntranceDelay), value: animateEntrance)
     }
     
     private var actionButtonsSection: some View {
@@ -106,18 +129,18 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
         .padding(.bottom, 10)
         .opacity(animateEntrance ? 1 : 0)
         .offset(y: animateEntrance ? 0 : 20)
-        .animation(.easeOut(duration: 0.7).delay(0.4), value: animateEntrance)
+        .animation(.easeOut(duration: Constants.actionButtonsEntranceDuration).delay(Constants.actionButtonsEntranceDelay), value: animateEntrance)
     }
     
     private var favoriteButton: some View {
         Button(action: {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                favoriteButtonScale = 0.8
+            withAnimation(.easeInOut(duration: Constants.favoriteButtonPressDuration)) {
+                favoriteButtonPressed = true
             }
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    favoriteButtonScale = 1.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + Constants.favoriteButtonPressDelay) {
+                withAnimation(.easeInOut(duration: Constants.favoriteButtonPressDuration)) {
+                    favoriteButtonPressed = false
                 }
             }
             
@@ -127,7 +150,7 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
                 Image(systemName: viewState.isFavorite ? "heart.fill" : "heart")
                     .foregroundColor(viewState.isFavorite ? .red : .gray)
                     .scaleEffect(viewState.isFavorite ? 1.1 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: viewState.isFavorite)
+                    .scaleEffect(favoriteButtonPressed ? Constants.favoriteButtonScale : 1.0)
                 
                 Text(viewState.isFavorite ? "Favorited" : "Add to Favorites")
                     .font(.body)
@@ -138,8 +161,6 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             .cornerRadius(8)
         }
         .buttonStyle(PlainButtonStyle())
-        .scaleEffect(favoriteButtonScale)
-        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: favoriteButtonScale)
     }
     
     private var cityInformationSection: some View {
@@ -173,7 +194,7 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
         .cornerRadius(12)
         .opacity(animateEntrance ? 1 : 0)
         .offset(y: animateEntrance ? 0 : 40)
-        .animation(.easeOut(duration: 0.8).delay(0.5), value: animateEntrance)
+        .animation(.easeOut(duration: Constants.infoSectionEntranceDuration).delay(Constants.infoSectionEntranceDelay), value: animateEntrance)
     }
     
     private var coordinatesSection: some View {
@@ -192,7 +213,7 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
             .opacity(animateEntrance ? 1 : 0)
             .offset(x: animateEntrance ? 0 : 30)
         }
-        .animation(.easeOut(duration: 0.9).delay(0.6), value: animateEntrance)
+        .animation(.easeOut(duration: Constants.coordinatesEntranceDuration).delay(Constants.coordinatesEntranceDelay), value: animateEntrance)
     }
     
     private var loadingOverlay: some View {
@@ -202,9 +223,9 @@ struct CityDetailView<ViewState: ObservableObject & CityDetailViewState>: View {
                     .scaleEffect(1.5)
                     .background(Color(.systemBackground).opacity(0.8))
                     .transition(.opacity.combined(with: .scale))
-                    .animation(.easeInOut(duration: 0.3), value: viewState.isLoading)
             }
         }
+        .animation(.easeInOut(duration: Constants.loadingTransitionDuration), value: viewState.isLoading)
     }
 }
 
@@ -278,7 +299,7 @@ private struct CityMapView: View {
         }
         .opacity(mapOpacity)
         .onAppear {
-            withAnimation(.easeIn(duration: 1.0).delay(0.5)) {
+            withAnimation(.easeIn(duration: 0.3)) {
                 mapOpacity = 1.0
             }
         }

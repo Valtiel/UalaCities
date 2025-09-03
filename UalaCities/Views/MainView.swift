@@ -8,6 +8,13 @@
 import SwiftUI
 
 struct MainView: View {
+    
+    // MARK: - Constants
+    
+    private enum Constants {
+        static var orientationTransitionDuration: Double { 0.3 }
+    }
+    
     @StateObject private var coordinator: AppCoordinator
     @StateObject private var servicesManager: ServicesManager
     private let viewModelFactory: ViewModelFactory
@@ -67,7 +74,7 @@ struct MainView: View {
                 
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: isPortrait)
+        .animation(.easeInOut(duration: Constants.orientationTransitionDuration), value: isPortrait)
     }
     
     private var isPortrait: Bool {
