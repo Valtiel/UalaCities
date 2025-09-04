@@ -88,6 +88,7 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
                     isFavorite: viewState.isDetailFavorite,
                     onToggleFavorite: { viewState.perform(.toggleDetailFavorite) }
                 ))
+                .id(selectedCity.id) // Force view recreation when city changes
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
             } else {
                 emptyDetailView
@@ -215,6 +216,7 @@ final class CitySearchDetailViewStatePreview: CitySearchDetailViewState, Observa
                 filteredCityList = cityList.filter { $0.name.lowercased().contains(query.lowercased()) }
             }
         case .selectCity(let city):
+            print("CitySearchDetailView: City selected: \(city.name) at coordinates: lat: \(city.coord.lat), lon: \(city.coord.lon)")
             selectedCity = city
         case .loadMore:
             print("Load more requested")
