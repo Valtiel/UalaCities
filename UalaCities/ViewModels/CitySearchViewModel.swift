@@ -175,8 +175,9 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         currentPage += 1
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.isLoadingMore = false
-            self?.updateFilteredList(with: self?.currentSearchResults ?? [])
+            guard let self else { return }
+            self.isLoadingMore = false
+            self.updateFilteredList(with: self.currentSearchResults)
         }
     }
     
