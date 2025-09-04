@@ -88,6 +88,11 @@ final class CitySearchViewModel: ObservableObject, CitySearchViewState {
         self.coordinator = newCoordinator
     }
     
+    /// Set the coordinator reference (used when the coordinator is created after the view model)
+    func setCoordinator(_ coordinator: any Coordinator) {
+        self.coordinator = coordinator
+    }
+    
     // MARK: - Private Methods
     
     private func setupBindings() {

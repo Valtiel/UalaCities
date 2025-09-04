@@ -59,6 +59,11 @@ final class CitySearchDetailViewModel: ObservableObject, CitySearchDetailViewSta
     
     // MARK: - Public Methods
     
+    /// Set the coordinator reference (used when the coordinator is created after the view model)
+    func setCoordinator(_ coordinator: any Coordinator) {
+        self.coordinator = coordinator
+    }
+    
     func perform(_ action: CitySearchDetailViewAction) {
         switch action {
         case .searchQuery(let query):

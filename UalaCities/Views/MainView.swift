@@ -17,6 +17,8 @@ struct MainView: View {
     
     @StateObject private var coordinator: AppCoordinator
     @StateObject private var servicesManager: ServicesManager
+    @StateObject private var citySearchDetailViewModel: CitySearchDetailViewModel
+    @StateObject private var citySearchViewModel: CitySearchViewModel
     private let viewModelFactory: ViewModelFactory
     private let viewFactory: ViewFactory
     @State private var orientation = UIDeviceOrientation.portrait
@@ -34,6 +36,22 @@ struct MainView: View {
         // Initialize state objects
         self._coordinator = StateObject(wrappedValue: AppCoordinator())
         self._servicesManager = StateObject(wrappedValue: servicesManager)
+        
+        // Create the CitySearchDetailViewModel once and persist it
+        self._citySearchDetailViewModel = StateObject(wrappedValue: CitySearchDetailViewModel(
+            searchService: servicesManager.searchService,
+            cityDataService: servicesManager.cityDataService,
+            favoritesService: servicesManager.favoritesService,
+            coordinator: nil // Will be set in onAppear
+        ))
+        
+        // Create the CitySearchViewModel once and persist it
+        self._citySearchViewModel = StateObject(wrappedValue: CitySearchViewModel(
+            searchService: servicesManager.searchService,
+            cityDataService: servicesManager.cityDataService,
+            favoritesService: servicesManager.favoritesService,
+            coordinator: nil // Will be set in onAppear
+        ))
     }
     
     var body: some View {
@@ -44,6 +62,11 @@ struct MainView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
             orientation = UIDevice.current.orientation
         }
+        .onAppear {
+            // Set the coordinator reference in the view models
+            citySearchDetailViewModel.setCoordinator(coordinator)
+            citySearchViewModel.setCoordinator(coordinator)
+        }
     }
     
     // MARK: - Private Helper Views
@@ -51,10 +74,9 @@ struct MainView: View {
     private var mainContent: some View {
         Group {
             if isPortrait {
-                // Show CitySearchView in portrait mode
+                // Show CitySearchView in portrait mode using the persisted view model
                 NavigationStack(path: $coordinator.navigationPath) {
-                    let viewModel = viewModelFactory.makeCitySearchViewModel(coordinator: coordinator)
-                    CitySearchView(viewState: viewModel)
+                    CitySearchView(viewState: citySearchViewModel)
                         .transition(.asymmetric(
                             insertion: .move(edge: .leading),
                             removal: .move(edge: .trailing)
@@ -64,9 +86,8 @@ struct MainView: View {
                         }
                 }
             } else {
-                // Show CitySearchDetailView in landscape mode
-                let viewModel = viewModelFactory.makeCitySearchDetailViewModel(coordinator: coordinator)
-                CitySearchDetailView(viewState: viewModel)
+                // Show CitySearchDetailView in landscape mode using the persisted view model
+                CitySearchDetailView(viewState: citySearchDetailViewModel)
                     .transition(.asymmetric(
                         insertion: .move(edge: .trailing),
                         removal: .move(edge: .leading)

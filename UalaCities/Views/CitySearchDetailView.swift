@@ -45,6 +45,7 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
     
     @ObservedObject var viewState: ViewState
     @State private var viewAppeared = false
+    @State private var selectedCity: City? = nil
     
     var body: some View {
         HStack(spacing: 0) {
@@ -61,9 +62,13 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
         .opacity(viewAppeared ? 1 : 0)
         .onAppear {
             viewState.onViewAppear()
+            selectedCity = viewState.selectedCity
             withAnimation(.easeOut(duration: Constants.viewEntranceDuration)) {
                 viewAppeared = true
             }
+        }
+        .onChange(of: viewState.selectedCity) {
+            selectedCity = viewState.selectedCity
         }
     }
     
@@ -77,7 +82,7 @@ struct CitySearchDetailView<ViewState: ObservableObject & CitySearchDetailViewSt
     
     private var detailSection: some View {
         Group {
-            if let selectedCity = viewState.selectedCity {
+            if let selectedCity {
                 CityDetailView(viewState: DetailViewStateAdapter(
                     city: selectedCity,
                     isFavorite: viewState.isDetailFavorite,
